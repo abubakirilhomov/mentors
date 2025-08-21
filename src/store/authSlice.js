@@ -13,7 +13,7 @@ export const loginMentor = createAsyncThunk(
   'auth/loginMentor',
   async ({ name, password }, { rejectWithValue }) => {
     try {
-      const response = await fetch('http://localhost:8000/api/mentors/login', {
+      const response = await fetch('https://interns-api-r3im.onrender.com/api/mentors/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
