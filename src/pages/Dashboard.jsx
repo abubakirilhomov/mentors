@@ -18,7 +18,7 @@ const Dashboard = () => {
   const [interns, setInterns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
+  const apiUrl = import.meta.env.VITE_API_URL
   const fetchInterns = async () => {
     if (!token) return;
 
@@ -26,12 +26,11 @@ const Dashboard = () => {
     setError(null);
 
     try {
-      const response = await axios.get("http://localhost:8000/api/interns", {
+      const response = await axios.get(`${apiUrl}/api/interns`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-      console.log(response.data)
       setInterns(response.data);
       
     } catch (err) {
@@ -55,7 +54,7 @@ const Dashboard = () => {
 
     try {
       const { data: updatedIntern } = await axios.post(
-        `http://localhost:8000/api/interns/${internId}/rate`,
+        `${apiUrl}/api/interns/${internId}/rate`,
         {
           stars,
           feedback,
@@ -91,7 +90,6 @@ const Dashboard = () => {
       </div>
     );
   }
-  console.log(user)
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}

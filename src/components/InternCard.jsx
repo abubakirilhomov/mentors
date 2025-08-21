@@ -21,7 +21,6 @@ const InternCard = ({ intern, onRate, mentorId }) => {
   
   const hasRatedThisWeek = intern.feedbacks.some((fb) => {
     const feedbackDate = new Date(fb.date);
-    console.log("fbmentorid",fb.mentorId, mentorId)
     return (
       String(fb.mentorId) === String(mentorId) &&
       getWeekOfYear(feedbackDate) === getWeekOfYear(now) &&
