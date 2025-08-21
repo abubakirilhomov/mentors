@@ -8,6 +8,7 @@ const initialState = {
   error: null,
 };
 const apiUrl = import.meta.env.VITE_API_URL
+console.log(apiUrl)
 // Async thunk для логина
 export const loginMentor = createAsyncThunk(
   'auth/loginMentor',
