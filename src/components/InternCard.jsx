@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Star, MessageSquare, Send } from "lucide-react";
+import Countdown from "./Countdown";
 
 const InternCard = ({ intern, onRate, mentorId }) => {
   const [rating, setRating] = useState(0);
@@ -18,7 +19,7 @@ const InternCard = ({ intern, onRate, mentorId }) => {
   }
 
   const now = new Date();
-  
+
   const hasRatedThisWeek = intern.feedbacks.some((fb) => {
     const feedbackDate = new Date(fb.date);
     return (
@@ -82,17 +83,22 @@ const InternCard = ({ intern, onRate, mentorId }) => {
 
   const totalLessons = Object.values(intern.lessonsVisited).reduce(
     (sum, count) => sum + count,
-    0 
+    0
   );
 
   const myFeedback = intern.feedbacks.find((fb) => {
     const feedbackDate = new Date(fb.date);
-    return (
+
+    const match =
       String(fb.mentorId) === String(mentorId) &&
       getWeekOfYear(feedbackDate) === getWeekOfYear(now) &&
-      feedbackDate.getFullYear() === now.getFullYear()
-    );
+      feedbackDate.getFullYear() === now.getFullYear();
+
+    console.log("Checking:", fb.mentorId, "==", mentorId, "=>", match);
+
+    return match;
   });
+
   return (
     <div className="bg-white rounded-3xl shadow-xl p-8 max-w-sm mx-auto h-[600px] flex flex-col">
       {/* Header */}
