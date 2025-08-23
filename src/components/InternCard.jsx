@@ -123,7 +123,7 @@ const InternCard = ({ intern, onRate, mentorId }) => {
         </div>
         <div className="bg-orange-50 rounded-xl p-2 text-center">
           <div className="text-2xl font-bold text-orange-600">
-            {totalLessons}
+            {intern.lessonsVisited.length || 0}
           </div>
           <div className="text-sm text-gray-600">Уроков посещено</div>
         </div>

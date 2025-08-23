@@ -179,7 +179,7 @@ const Dashboard = () => {
             </button>
           </div>
         ) : (
-          <div className="relative">
+          <div className="relative mb-44">
             <Swiper
               modules={[Navigation, Pagination]}
               spaceBetween={30}
