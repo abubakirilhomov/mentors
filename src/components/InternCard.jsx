@@ -118,7 +118,7 @@ const InternCard = ({ intern, onRate, mentorId }) => {
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 mb-0">
         <div className="bg-red-50 rounded-xl p-2 text-center">
-          <div className="text-2xl font-bold text-red-600">{intern.score}</div>
+          <div className="text-2xl font-bold text-red-600">{intern?.score ? intern.score.toFixed(1) : "0.0"}</div>
           <div className="text-sm text-gray-600">Общий балл</div>
         </div>
         <div className="bg-orange-50 rounded-xl p-2 text-center">
