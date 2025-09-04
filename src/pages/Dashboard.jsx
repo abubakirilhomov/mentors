@@ -5,7 +5,7 @@ import axios from "axios";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Pagination } from "swiper/modules";
 import InternCard from "../components/InternCard";
-import { LogOut, RefreshCw, Users, AlertCircle } from "lucide-react";
+import { LogOut, RefreshCw, Users, AlertCircle, Trophy } from "lucide-react";
 
 import "swiper/css";
 import "swiper/css/navigation";
@@ -14,11 +14,13 @@ import "swiper/css/pagination";
 const Dashboard = () => {
   const dispatch = useDispatch();
   const { token, user } = useSelector((state) => state.auth);
-  const mendorId = user?._id
+  const mendorId = user?._id;
   const [interns, setInterns] = useState([]);
+  const [rules, setRules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const apiUrl = import.meta.env.VITE_API_URL
+  const apiUrl = import.meta.env.VITE_API_URL;
+
   const fetchInterns = async () => {
     if (!token) return;
 
@@ -32,7 +34,6 @@ const Dashboard = () => {
         },
       });
       setInterns(response.data);
-      
     } catch (err) {
       console.error("Ошибка при загрузке интернов:", err);
       setError(
@@ -46,10 +47,28 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
+    const fetchRules = async () => {
+      try {
+        const response = await axios.get(`${apiUrl}/api/rules`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        console.log(response.data.data);
+        setRules(response.data.data);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchRules();
+  }, []);
+
+  useEffect(() => {
     fetchInterns();
   }, [token]);
 
-  const handleRate = async (internId, stars, feedback) => {
+  const handleRate = async (internId, stars, feedback, violations) => {
     if (!token) return;
 
     try {
@@ -58,7 +77,8 @@ const Dashboard = () => {
         {
           stars,
           feedback,
-          mentorId: mendorId
+          violations, // <--- новое поле
+          mentorId: mendorId,
         },
         {
           headers: {
@@ -90,6 +110,7 @@ const Dashboard = () => {
       </div>
     );
   }
+  console.log(interns)
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -110,8 +131,7 @@ const Dashboard = () => {
 
             <div className="flex items-center gap-4">
               <div className="text-right">
-                <p className="text-sm font-medium text-gray-900">
-                </p>
+                <p className="text-sm font-medium text-gray-900"></p>
                 <p className="text-xs text-gray-500">Ментор</p>
               </div>
 
@@ -206,6 +226,7 @@ const Dashboard = () => {
                     intern={intern}
                     onRate={handleRate}
                     mentorId={user?._id}
+                    rules={rules} 
                   />
                 </SwiperSlide>
               ))}
