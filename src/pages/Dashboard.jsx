@@ -19,7 +19,7 @@ const Dashboard = () => {
   const [rules, setRules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const apiUrl = import.meta.env.VITE_API_URL1;
+  const apiUrl = import.meta.env.VITE_API_URL;
 
   const fetchInterns = async () => {
     if (!token) return;
