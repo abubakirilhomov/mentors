@@ -19,7 +19,7 @@ const Dashboard = () => {
   const [rules, setRules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const apiUrl = import.meta.env.VITE_API_URL;
+  const apiUrl = import.meta.env.VITE_API_URL1;
 
   const fetchInterns = async () => {
     if (!token) return;
@@ -28,11 +28,10 @@ const Dashboard = () => {
     setError(null);
 
     try {
-      const response = await axios.get(`${apiUrl}/api/interns`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const response = await axios.get(`${apiUrl}/api/lessons/pending`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
+      console.log(response.data);
       setInterns(response.data);
     } catch (err) {
       console.error("Ошибка при загрузке интернов:", err);
@@ -68,9 +67,15 @@ const Dashboard = () => {
     fetchInterns();
   }, [token]);
 
-  const handleRate = async (internId, stars, feedback, violations) => {
+  const handleRate = async (
+    internId,
+    stars,
+    feedback,
+    violations,
+    lessonId
+  ) => {
     if (!token) return;
-
+    console.log(lessonId);
     try {
       const { data: updatedIntern } = await axios.post(
         `${apiUrl}/api/interns/${internId}/rate`,
@@ -79,6 +84,7 @@ const Dashboard = () => {
           feedback,
           violations, // <--- новое поле
           mentorId: mendorId,
+          lessonId: lessonId,
         },
         {
           headers: {
@@ -87,9 +93,14 @@ const Dashboard = () => {
         }
       );
 
-      setInterns((prev) =>
-        prev.map((intern) => (intern._id === internId ? updatedIntern : intern))
-      );
+      setInterns((prev) => {
+        const copy = [...prev];
+        const index = copy.findIndex((intern) => intern._id === internId);
+        if (index !== -1) {
+          copy.splice(index, 1); // убираем только первую найденную карточку
+        }
+        return copy;
+      });
     } catch (err) {
       console.error("Ошибка при оценке:", err);
       throw err;
@@ -122,7 +133,7 @@ const Dashboard = () => {
                 <span className="text-white font-bold text-lg">M</span>
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">
+                <h1 className="text-md lg:text-xl font-bold text-gray-900">
                   Mars IT School
                 </h1>
                 <p className="text-sm text-gray-600">Панель ментора</p>
@@ -160,9 +171,9 @@ const Dashboard = () => {
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-2">
             <Users className="w-6 h-6 text-red-500" />
-            <h2 className="text-2xl font-bold text-gray-900">Стажёры</h2>
+            <h2 className="lg:text-2xl text-lg font-bold text-gray-900">Стажёры</h2>
           </div>
-          <p className="text-gray-600">
+          <p className="text-gray-600 text-xs ">
             Оцените работу стажёров за эту неделю. Свайпайте для перехода между
             карточками.
           </p>
@@ -234,7 +245,7 @@ const Dashboard = () => {
 
             {/* Отдельный контейнер для кнопок навигации */}
             {interns.length > 1 && (
-              <div className="absolute inset-0 pointer-events-none z-10">
+              <div className="absolute top-[10%] lg:top-[10%] inset-0 pointer-events-none z-10">
                 <div className="relative h-80 flex items-center justify-between px-4">
                   <button className="swiper-button-prev-custom pointer-events-auto w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center text-gray-600 hover:text-red-500 transition-colors duration-200">
                     <svg
