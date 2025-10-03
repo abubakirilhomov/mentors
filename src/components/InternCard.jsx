@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Star, MessageSquare, Send } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "react-toastify";
 
 const InternCard = ({ intern, onRate, mentorId, rules = [] }) => {
   const [rating, setRating] = useState(0);
@@ -28,8 +29,10 @@ const InternCard = ({ intern, onRate, mentorId, rules = [] }) => {
       setShowFeedback(false);
       setSelectedViolations([]);
       setShowViolations(false);
+      toast.success("Стажер успешно оценен")
     } catch (error) {
       console.error("Ошибка при отправке оценки:", error);
+      toast.error("Ошибка с оценкой стажеров")
     }
     setIsSubmitting(false);
   };

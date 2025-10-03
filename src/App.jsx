@@ -6,6 +6,7 @@ import { loadFromStorage } from './store/authSlice';
 import PrivateRoute from './components/PrivateRoute';
 import LoginPage from './pages/LoginPage';
 import Dashboard from './pages/Dashboard';
+import { ToastContainer } from 'react-toastify';
 
 const AppContent = () => {
   const dispatch = useDispatch();
@@ -30,6 +31,7 @@ const AppContent = () => {
           />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
+        <ToastContainer/>
       </div>
     </Router>
   );

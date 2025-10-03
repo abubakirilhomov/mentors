@@ -10,7 +10,7 @@ export default defineConfig({
       includeAssets: ['favicon.svg', 'favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
       manifest: {
         name: 'Mentors Internship',
-        short_name: 'PWAApp',
+        short_name: 'Mentors',
         description: 'Mentors App for Internhub',
         theme_color: '#ffffff',
         icons: [

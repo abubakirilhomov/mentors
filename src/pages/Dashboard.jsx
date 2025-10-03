@@ -121,7 +121,6 @@ const Dashboard = () => {
       </div>
     );
   }
-  console.log(interns);
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
