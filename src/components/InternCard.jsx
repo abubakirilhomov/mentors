@@ -29,7 +29,7 @@ const InternCard = ({ intern, onRate, mentorId, rules = [] }) => {
       setShowFeedback(false);
       setSelectedViolations([]);
       setShowViolations(false);
-      toast.success("Стажер успешно оценен")
+      toast.success("Стажер успешно оценен", {autoClose: 1500})
     } catch (error) {
       console.error("Ошибка при отправке оценки:", error);
       toast.error("Ошибка с оценкой стажеров")
