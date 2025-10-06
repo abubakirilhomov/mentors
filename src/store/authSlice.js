@@ -12,27 +12,30 @@ console.log(apiUrl)
 // Async thunk для логина
 export const loginMentor = createAsyncThunk(
   'auth/loginMentor',
-  async ({ name, password }, { rejectWithValue }) => {
+  async ({ name, lastName, password }, { rejectWithValue }) => {
     try {
+      const payload = lastName?.trim()
+        ? { name, lastName: lastName.trim(), password }
+        : { name, password };
+
       const response = await fetch(`${apiUrl}/api/mentors/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name, password }),
+        body: JSON.stringify(payload),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        return rejectWithValue(errorData.message || 'Ошибка авторизации');
+        return rejectWithValue(data.message || 'Ошибка авторизации');
       }
 
-      const data = await response.json();
-      
       // Сохраняем в localStorage
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-      
+
       return data;
     } catch (error) {
       return rejectWithValue('Ошибка сети');
