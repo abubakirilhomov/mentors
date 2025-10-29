@@ -1,5 +1,5 @@
 /// <reference lib="webworker" />
-import { precacheAndRoute } from 'workbox-precaching';
+import { precacheAndRoute } from "workbox-precaching";
 
 // Workbox кэширование
 precacheAndRoute(self.__WB_MANIFEST || []);
@@ -19,9 +19,10 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,
-      icon: "/icon.png",
-      badge: "/icon.png",
+      icon: "https://cdn-icons-png.flaticon.com/512/190/190411.png", // ✅ иконка обязательна в некоторых ОС
+      badge: "https://cdn-icons-png.flaticon.com/512/190/190411.png",
       requireInteraction: true,
+      vibrate: [100, 50, 100],
     })
   );
 });
@@ -29,7 +30,5 @@ self.addEventListener("push", (event) => {
 // 🔗 Клик по уведомлению
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  event.waitUntil(
-    clients.openWindow("/dashboard")
-  );
+  event.waitUntil(clients.openWindow("/dashboard"));
 });
