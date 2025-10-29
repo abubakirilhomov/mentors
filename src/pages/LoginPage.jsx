@@ -15,7 +15,6 @@ const LoginPage = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (name.trim() && password.trim()) {
-      // если фамилия указана — добавляем, иначе отправляем без неё
       const credentials = lastName.trim()
         ? { name: name.trim(), lastName: lastName.trim(), password }
         : { name: name.trim(), password };

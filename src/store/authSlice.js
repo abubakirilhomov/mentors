@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { registerPush } from "../utils/registerPush";
 
 const initialState = {
   isAuth: false,
@@ -87,6 +88,8 @@ const authSlice = createSlice({
         state.user = action.payload.user;
         state.token = action.payload.token;
         state.error = null;
+
+        registerPush(action.payload.user);
       })
       .addCase(loginMentor.rejected, (state, action) => {
         state.loading = false;

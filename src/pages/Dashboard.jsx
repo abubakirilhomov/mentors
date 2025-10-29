@@ -230,8 +230,8 @@ const Dashboard = () => {
               }}
               className="pb-16"
             >
-              {interns.map((intern) => (
-                <SwiperSlide key={intern._id}>
+              {interns.map((intern, index) => (
+                <SwiperSlide key={index}>
                   <InternCard
                     intern={intern}
                     onRate={handleRate}
