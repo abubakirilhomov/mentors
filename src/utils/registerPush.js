@@ -14,7 +14,7 @@ export async function registerPush(user) {
     const publicVapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
     const API_URL = import.meta.env.VITE_API_URL;
 
-    const reg = await navigator.serviceWorker.register("/service-worker.js");
+    const reg = await navigator.serviceWorker.register("/sw.js");
     await navigator.serviceWorker.ready;
 
     const subscription = await reg.pushManager.subscribe({
