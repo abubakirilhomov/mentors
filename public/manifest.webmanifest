@@ -29,7 +29,7 @@
   ],
 
   "gcm_sender_id": "103953800507",
-  "permissions": ["notifications", "push"],
+  "display_override": ["standalone", "minimal-ui"],
 
   "categories": ["education", "productivity"],
 
@@ -46,5 +46,7 @@
         }
       ]
     }
-  ]
+  ],
+  "lang": "ru"
+
 }

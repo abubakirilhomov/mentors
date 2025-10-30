@@ -21,6 +21,48 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
   const apiUrl = import.meta.env.VITE_API_URL;
 
+  useEffect(() => {
+    if (!token || !user) return;
+
+    (async () => {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        const existing = await reg.pushManager.getSubscription();
+
+        if (existing) {
+          console.log("🔄 Существующая подписка найдена:", existing);
+          await fetch(`${import.meta.env.VITE_API_URL}/api/notifications/subscribe`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              subscription: existing,
+              userId: user._id,
+              userType: "mentor",
+            }),
+          });
+        } else {
+          console.log("🆕 Подписка не найдена, создаю новую...");
+          const newSub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: import.meta.env.VITE_VAPID_PUBLIC_KEY,
+          });
+
+          await fetch(`${import.meta.env.VITE_API_URL}/api/notifications/subscribe`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              subscription: newSub,
+              userId: user._id,
+              userType: "mentor",
+            }),
+          });
+        }
+      } catch (err) {
+        console.error("Ошибка при регистрации push-подписки:", err);
+      }
+    })();
+  }, [token, user]);
+  
   const fetchInterns = async () => {
     if (!token) return;
 
