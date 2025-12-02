@@ -12,7 +12,7 @@ export default defineConfig({
       srcDir: 'src',
       filename: 'sw.js',
       injectManifest: {
-        swSrc: 'src/sw.js',
+        swSrc: 'sw.js',
       },
       manifest: false, // 👈 говорим, что свой манифест лежит в public/
       includeAssets: [
