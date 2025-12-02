@@ -1,68 +1,71 @@
 import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { logout } from "../store/authSlice";
-import axios from "axios";
+import { secureFetch } from "../utils/secureFetch";
+
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Pagination } from "swiper/modules";
 import InternCard from "../components/InternCard";
-import { LogOut, RefreshCw, Users, AlertCircle, Trophy } from "lucide-react";
 
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 
+import {
+  LogOut,
+  RefreshCw,
+  Users,
+  AlertCircle,
+} from "lucide-react";
+
 const Dashboard = () => {
   const dispatch = useDispatch();
   const { token, user } = useSelector((state) => state.auth);
-  const mendorId = user?._id;
+
+  const mentorId = user?._id;
+  const apiUrl = import.meta.env.VITE_API_URL;
+
   const [interns, setInterns] = useState([]);
   const [rules, setRules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const apiUrl = import.meta.env.VITE_API_URL;
 
+  // ----------------------
+  // Push Notifications Setup
+  // ----------------------
   useEffect(() => {
     if (!token || !user) return;
 
     (async () => {
       try {
         const reg = await navigator.serviceWorker.ready;
-        const existing = await reg.pushManager.getSubscription();
+        const existingSub = await reg.pushManager.getSubscription();
 
-        if (existing) {
-          console.log("🔄 Существующая подписка найдена:", existing);
-          await fetch(`${import.meta.env.VITE_API_URL}/api/notifications/subscribe`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              subscription: existing,
-              userId: user._id,
-              userType: "mentor",
-            }),
-          });
-        } else {
-          console.log("🆕 Подписка не найдена, создаю новую...");
-          const newSub = await reg.pushManager.subscribe({
+        const subscription =
+          existingSub ||
+          (await reg.pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey: import.meta.env.VITE_VAPID_PUBLIC_KEY,
-          });
+          }));
 
-          await fetch(`${import.meta.env.VITE_API_URL}/api/notifications/subscribe`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              subscription: newSub,
-              userId: user._id,
-              userType: "mentor",
-            }),
-          });
-        }
+        await secureFetch(`${apiUrl}/api/notifications/subscribe`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            subscription,
+            userId: user._id,
+            userType: "mentor",
+          }),
+        });
       } catch (err) {
-        console.error("Ошибка при регистрации push-подписки:", err);
+        console.error("Push подписка не удалась:", err);
       }
     })();
   }, [token, user]);
-  
+
+  // ----------------------
+  // Fetch interns (pending lessons)
+  // ----------------------
   const fetchInterns = async () => {
     if (!token) return;
 
@@ -70,38 +73,37 @@ const Dashboard = () => {
     setError(null);
 
     try {
-      const response = await axios.get(`${apiUrl}/api/lessons/pending`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      console.log(response.data);
-      setInterns(response.data);
+      const response = await secureFetch(`${apiUrl}/api/lessons/pending`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Ошибка при загрузке");
+      }
+
+      setInterns(data);
     } catch (err) {
-      console.error("Ошибка при загрузке интернов:", err);
-      setError(
-        err.response?.data?.message ||
-          err.message ||
-          "Ошибка при загрузке стажёров"
-      );
+      console.error("Ошибка загрузки стажёров:", err);
+      setError(err.message || "Ошибка при загрузке стажёров");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    const fetchRules = async () => {
-      try {
-        const response = await axios.get(`${apiUrl}/api/rules`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        console.log(response.data.data);
-        setRules(response.data.data);
-      } catch (error) {
-        console.error(error);
-      }
-    };
+  // ----------------------
+  // Fetch rules
+  // ----------------------
+  const fetchRules = async () => {
+    try {
+      const response = await secureFetch(`${apiUrl}/api/rules`);
+      const data = await response.json();
 
+      setRules(data.data || []);
+    } catch (err) {
+      console.error("Ошибка загрузки правил:", err);
+    }
+  };
+
+  useEffect(() => {
     fetchRules();
   }, []);
 
@@ -109,6 +111,9 @@ const Dashboard = () => {
     fetchInterns();
   }, [token]);
 
+  // ----------------------
+  // Rate intern
+  // ----------------------
   const handleRate = async (
     internId,
     stars,
@@ -116,33 +121,30 @@ const Dashboard = () => {
     violations,
     lessonId
   ) => {
-    if (!token) return;
-    console.log(lessonId);
     try {
-      const { data: updatedIntern } = await axios.post(
+      const response = await secureFetch(
         `${apiUrl}/api/interns/${internId}/rate`,
         {
-          stars,
-          feedback,
-          violations, // <--- новое поле
-          mentorId: mendorId,
-          lessonId: lessonId,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            stars,
+            feedback,
+            violations,
+            mentorId,
+            lessonId,
+          }),
         }
       );
 
-      setInterns((prev) => {
-        const copy = [...prev];
-        const index = copy.findIndex((intern) => intern._id === internId);
-        if (index !== -1) {
-          copy.splice(index, 1); // убираем только первую найденную карточку
-        }
-        return copy;
-      });
+      const updatedIntern = await response.json();
+
+      if (!response.ok) throw new Error(updatedIntern.message);
+
+      // Убираем оценённого стажёра
+      setInterns((prev) =>
+        prev.filter((i) => i._id !== internId)
+      );
     } catch (err) {
       console.error("Ошибка при оценке:", err);
       throw err;
@@ -153,6 +155,9 @@ const Dashboard = () => {
     dispatch(logout());
   };
 
+  // ----------------------
+  // Rendering
+  // ----------------------
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -163,6 +168,7 @@ const Dashboard = () => {
       </div>
     );
   }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -182,14 +188,9 @@ const Dashboard = () => {
             </div>
 
             <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-sm font-medium text-gray-900"></p>
-                <p className="text-xs text-gray-500">Ментор</p>
-              </div>
-
               <button
                 onClick={() => fetchInterns()}
-                className="p-2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                className="p-2 text-gray-400 hover:text-gray-600"
                 title="Обновить"
               >
                 <RefreshCw className="w-5 h-5" />
@@ -197,7 +198,7 @@ const Dashboard = () => {
 
               <button
                 onClick={handleLogout}
-                className="p-2 text-gray-400 hover:text-red-600 transition-colors duration-200"
+                className="p-2 text-gray-400 hover:text-red-600"
                 title="Выйти"
               >
                 <LogOut className="w-5 h-5" />
@@ -212,132 +213,86 @@ const Dashboard = () => {
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-2">
             <Users className="w-6 h-6 text-red-500" />
-            <h2 className="lg:text-2xl text-lg font-bold text-gray-900">Стажёры</h2>
+            <h2 className="lg:text-2xl text-lg font-bold text-gray-900">
+              Стажёры
+            </h2>
           </div>
-          <p className="text-gray-600 text-xs ">
-            Оцените работу стажёров за эту неделю. Свайпайте для перехода между
-            карточками.
+          <p className="text-gray-600 text-xs">
+            Оцените работу стажёров за эту неделю.
           </p>
         </div>
 
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-red-700">
-            <AlertCircle className="w-5 h-5 flex-shrink-0" />
+            <AlertCircle className="w-5 h-5" />
             <span>{error}</span>
             <button
               onClick={() => fetchInterns()}
-              className="ml-auto text-red-600 hover:text-red-800 underline"
+              className="ml-auto text-red-600 underline"
             >
               Повторить
             </button>
           </div>
         )}
 
-        {interns.length === 0 && !loading && !error ? (
+        {/* Empty state */}
+        {interns.length === 0 && !loading ? (
           <div className="text-center py-12">
             <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-medium text-gray-900 mb-2">
+            <h3 className="text-xl font-medium text-gray-900">
               Стажёры не найдены
             </h3>
-            <p className="text-gray-600 mb-4">
-              В вашем филиале пока нет зарегистрированных стажёров.
-            </p>
             <button
               onClick={() => fetchInterns()}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg"
             >
-              <RefreshCw className="w-4 h-4" />
-              Обновить
+              <RefreshCw className="w-4 h-4" /> Обновить
             </button>
           </div>
         ) : (
-          <div className="relative">
-            <Swiper
-              modules={[Navigation, Pagination]}
-              spaceBetween={30}
-              slidesPerView={1}
-              navigation={{
-                nextEl: ".swiper-button-next-custom",
-                prevEl: ".swiper-button-prev-custom",
-              }}
-              pagination={{
-                clickable: true,
-                bulletClass: "swiper-pagination-bullet-custom",
-                bulletActiveClass: "swiper-pagination-bullet-active-custom",
-              }}
-              breakpoints={{
-                640: { slidesPerView: 1 },
-                768: { slidesPerView: 2 },
-                1024: { slidesPerView: 3 },
-              }}
-              className="pb-16"
-            >
-              {interns.map((intern, index) => (
-                <SwiperSlide key={index}>
-                  <InternCard
-                    intern={intern}
-                    onRate={handleRate}
-                    mentorId={user?._id}
-                    rules={rules}
-                  />
-                </SwiperSlide>
-              ))}
-            </Swiper>
-
-            {/* Отдельный контейнер для кнопок навигации */}
-            {interns.length > 1 && (
-              <div className="absolute top-[10%] lg:top-[10%] inset-0 pointer-events-none z-10">
-                <div className="relative h-80 flex items-center justify-between px-4">
-                  <button className="swiper-button-prev-custom pointer-events-auto w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center text-gray-600 hover:text-red-500 transition-colors duration-200">
-                    <svg
-                      className="w-6 h-6"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 19l-7-7 7-7"
-                      />
-                    </svg>
-                  </button>
-
-                  <button className="swiper-button-next-custom pointer-events-auto w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center text-gray-600 hover:text-red-500 transition-colors duration-200">
-                    <svg
-                      className="w-6 h-6"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+          <Swiper
+            modules={[Navigation, Pagination]}
+            spaceBetween={30}
+            slidesPerView={1}
+            navigation={{
+              nextEl: ".swiper-button-next-custom",
+              prevEl: ".swiper-button-prev-custom",
+            }}
+            pagination={{
+              clickable: true,
+              bulletClass: "swiper-pagination-bullet-custom",
+              bulletActiveClass: "swiper-pagination-bullet-active-custom",
+            }}
+            breakpoints={{
+              768: { slidesPerView: 2 },
+              1024: { slidesPerView: 3 },
+            }}
+            className="pb-16"
+          >
+            {interns.map((intern, index) => (
+              <SwiperSlide key={index}>
+                <InternCard
+                  intern={intern}
+                  mentorId={mentorId}
+                  rules={rules}
+                  onRate={handleRate}
+                />
+              </SwiperSlide>
+            ))}
+          </Swiper>
         )}
       </main>
 
-      {/* Custom Swiper Styles */}
       <style>{`
         .swiper-pagination-bullet-custom {
           width: 12px;
           height: 12px;
           background: #d1d5db;
-          opacity: 1;
           transition: all 0.2s ease;
         }
         .swiper-pagination-bullet-active-custom {
           background: #ef4444;
-          transform: scale(1.2);
+          transform: scale(1.25);
         }
       `}</style>
     </div>
