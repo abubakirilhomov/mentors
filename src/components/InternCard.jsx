@@ -20,7 +20,7 @@ const InternCard = ({ intern, onRate, mentorId, rules = [] }) => {
       await onRate(
         intern._id,
         rating,
-        feedback.trim() || undefined,
+        feedback.trim(), // Send empty string if empty, not undefined
         selectedViolations,
         intern.lessonId || undefined
       );
@@ -29,7 +29,7 @@ const InternCard = ({ intern, onRate, mentorId, rules = [] }) => {
       setShowFeedback(false);
       setSelectedViolations([]);
       setShowViolations(false);
-      toast.success("Стажер успешно оценен", {autoClose: 1500})
+      toast.success("Стажер успешно оценен", { autoClose: 1500 })
     } catch (error) {
       console.error("Ошибка при отправке оценки:", error);
       toast.error("Ошибка с оценкой стажеров")
@@ -55,9 +55,8 @@ const InternCard = ({ intern, onRate, mentorId, rules = [] }) => {
           whileTap={{ scale: 0.9 }}
         >
           <Star
-            className={`w-8 h-8 ${
-              isActive ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
-            } transition-colors duration-200`}
+            className={`w-8 h-8 ${isActive ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
+              } transition-colors duration-200`}
           />
         </motion.button>
       );

@@ -3,7 +3,7 @@ import { store } from "../store/index.js";
 export const secureFetch = async (url, options = {}) => {
   let token = localStorage.getItem("token");
   const refreshToken = localStorage.getItem("refreshToken");
-  
+
   // Подставляем токен
   options.headers = {
     ...(options.headers || {}),

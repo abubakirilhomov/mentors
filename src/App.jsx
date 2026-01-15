@@ -21,17 +21,17 @@ const AppContent = () => {
       <div className="App">
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-          <Route 
-            path="/dashboard" 
+          <Route
+            path="/dashboard"
             element={
               <PrivateRoute>
                 <Dashboard />
               </PrivateRoute>
-            } 
+            }
           />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
-        <ToastContainer/>
+        <ToastContainer />
       </div>
     </Router>
   );

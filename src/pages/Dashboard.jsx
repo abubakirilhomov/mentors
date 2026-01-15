@@ -1,11 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { logout } from "../store/authSlice";
-import { secureFetch } from "../utils/secureFetch";
+import { api } from "../services/api";
 
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Pagination } from "swiper/modules";
 import InternCard from "../components/InternCard";
+import StatsCard from "../components/StatsCard";
+import PushManager from "../components/PushManager";
+import InstallPrompt from "../components/InstallPrompt";
 
 import "swiper/css";
 import "swiper/css/navigation";
@@ -20,100 +23,42 @@ import {
 
 const Dashboard = () => {
   const dispatch = useDispatch();
-  const { token, user } = useSelector((state) => state.auth);
-
+  const { user } = useSelector((state) => state.auth);
   const mentorId = user?._id;
-  const apiUrl = import.meta.env.VITE_API_URL;
 
   const [interns, setInterns] = useState([]);
+  const [stats, setStats] = useState(null);
   const [rules, setRules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // ----------------------
-  // Push Notifications Setup
-  // ----------------------
-  useEffect(() => {
-    if (!token || !user) return;
-
-    (async () => {
-      try {
-        const reg = await navigator.serviceWorker.ready;
-        const existingSub = await reg.pushManager.getSubscription();
-
-        const subscription =
-          existingSub ||
-          (await reg.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: import.meta.env.VITE_VAPID_PUBLIC_KEY,
-          }));
-
-        await secureFetch(`${apiUrl}/api/notifications/subscribe`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            subscription,
-            userId: user._id,
-            userType: "mentor",
-          }),
-        });
-      } catch (err) {
-        console.error("Push подписка не удалась:", err);
-      }
-    })();
-  }, [token, user]);
-
-  // ----------------------
-  // Fetch interns (pending lessons)
-  // ----------------------
-  const fetchInterns = async () => {
-    if (!token) return;
+  const loadData = useCallback(async () => {
+    if (!mentorId) return;
 
     setLoading(true);
     setError(null);
-
     try {
-      const response = await secureFetch(`${apiUrl}/api/lessons/pending`);
-      const data = await response.json();
+      const [internsData, statsData, rulesData] = await Promise.all([
+        api.getPendingInterns(),
+        api.getStats(mentorId),
+        api.getRules()
+      ]);
 
-      if (!response.ok) {
-        throw new Error(data.message || "Ошибка при загрузке");
-      }
-
-      setInterns(data);
+      setInterns(internsData);
+      setStats(statsData);
+      setRules(rulesData);
     } catch (err) {
-      console.error("Ошибка загрузки стажёров:", err);
-      setError(err.message || "Ошибка при загрузке стажёров");
+      console.error("Data load error:", err);
+      setError(err.message || "Ошибка загрузки данных");
     } finally {
       setLoading(false);
     }
-  };
-
-  // ----------------------
-  // Fetch rules
-  // ----------------------
-  const fetchRules = async () => {
-    try {
-      const response = await secureFetch(`${apiUrl}/api/rules`);
-      const data = await response.json();
-
-      setRules(data.data || []);
-    } catch (err) {
-      console.error("Ошибка загрузки правил:", err);
-    }
-  };
+  }, [mentorId]);
 
   useEffect(() => {
-    fetchRules();
-  }, []);
+    loadData();
+  }, [loadData]);
 
-  useEffect(() => {
-    fetchInterns();
-  }, [token]);
-
-  // ----------------------
-  // Rate intern
-  // ----------------------
   const handleRate = async (
     internId,
     stars,
@@ -122,32 +67,27 @@ const Dashboard = () => {
     lessonId
   ) => {
     try {
-      const response = await secureFetch(
-        `${apiUrl}/api/interns/${internId}/rate`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            stars,
-            feedback,
-            violations,
-            mentorId,
-            lessonId,
-          }),
-        }
-      );
+      await api.rateIntern(internId, {
+        stars,
+        feedback,
+        violations,
+        mentorId,
+        lessonId
+      });
 
-      const updatedIntern = await response.json();
+      // Update local state: remove ONLY this specific lesson (not all lessons with this intern)
+      setInterns((prev) => prev.filter((i) => i.lessonId !== lessonId));
 
-      if (!response.ok) throw new Error(updatedIntern.message);
+      // Update stats locally to reflect change instantly
+      setStats(prev => prev ? ({
+        ...prev,
+        monthFeedbacks: prev.monthFeedbacks + 1,
+        totalDebt: Math.max(0, prev.totalDebt - 1)
+      }) : null);
 
-      // Убираем оценённого стажёра
-      setInterns((prev) =>
-        prev.filter((i) => i._id !== internId)
-      );
     } catch (err) {
       console.error("Ошибка при оценке:", err);
-      throw err;
+      throw err; // InternCard will handle showing toast
     }
   };
 
@@ -155,24 +95,10 @@ const Dashboard = () => {
     dispatch(logout());
   };
 
-  // ----------------------
-  // Rendering
-  // ----------------------
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <RefreshCw className="w-8 h-8 text-red-500 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Загружаем стажёров...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-white shadow-sm border-b sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-4">
@@ -189,11 +115,12 @@ const Dashboard = () => {
 
             <div className="flex items-center gap-4">
               <button
-                onClick={() => fetchInterns()}
-                className="p-2 text-gray-400 hover:text-gray-600"
+                onClick={loadData}
+                disabled={loading}
+                className={`p-2 text-gray-400 hover:text-gray-600 ${loading ? 'opacity-50' : ''}`}
                 title="Обновить"
               >
-                <RefreshCw className="w-5 h-5" />
+                <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
               </button>
 
               <button
@@ -210,15 +137,29 @@ const Dashboard = () => {
 
       {/* Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        {/* Push & Install Prompts */}
+        <div className="max-w-3xl mx-auto">
+          <PushManager userId={mentorId} />
+        </div>
+        <InstallPrompt />
+
+        {/* Stats Section */}
+        <div className="max-w-4xl mx-auto">
+          <StatsCard stats={stats} loading={loading && !stats} />
+        </div>
+
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-2">
             <Users className="w-6 h-6 text-red-500" />
             <h2 className="lg:text-2xl text-lg font-bold text-gray-900">
-              Стажёры
+              Стажёры на оценку
             </h2>
           </div>
           <p className="text-gray-600 text-xs">
-            Оцените работу стажёров за эту неделю.
+            {interns.length > 0
+              ? `У вас ${interns.length} неоценённых занятий. Пожалуйста, оставьте фидбэк.`
+              : "Отличная работа! Все стажёры оценены."}
           </p>
         </div>
 
@@ -227,7 +168,7 @@ const Dashboard = () => {
             <AlertCircle className="w-5 h-5" />
             <span>{error}</span>
             <button
-              onClick={() => fetchInterns()}
+              onClick={loadData}
               className="ml-auto text-red-600 underline"
             >
               Повторить
@@ -237,17 +178,16 @@ const Dashboard = () => {
 
         {/* Empty state */}
         {interns.length === 0 && !loading ? (
-          <div className="text-center py-12">
-            <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-medium text-gray-900">
-              Стажёры не найдены
+          <div className="text-center py-12 bg-white rounded-3xl shadow-sm border border-gray-100 max-w-2xl mx-auto">
+            <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-10 h-10 text-green-500" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
+              Все чисто!
             </h3>
-            <button
-              onClick={() => fetchInterns()}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg"
-            >
-              <RefreshCw className="w-4 h-4" /> Обновить
-            </button>
+            <p className="text-gray-500 max-w-sm mx-auto">
+              У вас нет долгов по фидбэкам. Можете отдохнуть или провести еще одно занятие.
+            </p>
           </div>
         ) : (
           <Swiper
@@ -298,5 +238,8 @@ const Dashboard = () => {
     </div>
   );
 };
+
+// Missing import fix
+import { CheckCircle } from "lucide-react";
 
 export default Dashboard;

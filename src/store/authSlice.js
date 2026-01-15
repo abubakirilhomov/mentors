@@ -10,6 +10,7 @@ const initialState = {
   error: null,
 };
 const apiUrl = import.meta.env.VITE_API_URL;
+console.log(apiUrl);
 
 export const loginMentor = createAsyncThunk(
   "auth/loginMentor",
@@ -26,7 +27,7 @@ export const loginMentor = createAsyncThunk(
       });
 
       const data = await response.json();
-
+      console.log(data)
       if (!response.ok) {
         return rejectWithValue(data.message || "Ошибка авторизации");
       }
