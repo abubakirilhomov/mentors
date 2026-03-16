@@ -3,6 +3,8 @@ import { registerPush } from "../utils/registerPush";
 
 const initialState = {
   isAuth: false,
+  needsBranchSelect: false,  // true when mentor has multiple branches
+  pendingLoginData: null,    // holds login response until branch is chosen
   user: null,
   token: null,
   refreshToken: null,
@@ -10,7 +12,6 @@ const initialState = {
   error: null,
 };
 const apiUrl = import.meta.env.VITE_API_URL;
-console.log(apiUrl);
 
 export const loginMentor = createAsyncThunk(
   "auth/loginMentor",
@@ -20,22 +21,16 @@ export const loginMentor = createAsyncThunk(
         ? { name, lastName: lastName.trim(), password }
         : { name, password };
 
-      const response = await fetch(`${apiUrl}/api/mentors/login`, {
+      const response = await fetch(`${apiUrl}/mentors/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
       const data = await response.json();
-      console.log(data)
       if (!response.ok) {
         return rejectWithValue(data.message || "Ошибка авторизации");
       }
-
-      // ✔ Сохраняем оба токена
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("refreshToken", data.refreshToken);
-      localStorage.setItem("user", JSON.stringify(data.user));
 
       return data;
     } catch (error) {
@@ -50,12 +45,29 @@ const authSlice = createSlice({
   reducers: {
     logout: (state) => {
       state.isAuth = false;
+      state.needsBranchSelect = false;
+      state.pendingLoginData = null;
       state.user = null;
       state.token = null;
       state.error = null;
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       localStorage.removeItem("refreshToken");
+      localStorage.removeItem("activeBranchId");
+    },
+    selectBranch: (state, action) => {
+      const branchId = action.payload;
+      localStorage.setItem("activeBranchId", branchId);
+      const data = state.pendingLoginData;
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("refreshToken", data.refreshToken);
+      localStorage.setItem("user", JSON.stringify({ ...data.user, activeBranchId: branchId }));
+      state.isAuth = true;
+      state.needsBranchSelect = false;
+      state.user = { ...data.user, activeBranchId: branchId };
+      state.token = data.token;
+      state.refreshToken = data.refreshToken;
+      state.pendingLoginData = null;
     },
     updateToken: (state, action) => {
       state.token = action.payload;
@@ -90,13 +102,27 @@ const authSlice = createSlice({
       })
       .addCase(loginMentor.fulfilled, (state, action) => {
         state.loading = false;
-        state.isAuth = true;
-        state.user = action.payload.user;
-        state.token = action.payload.token;
-        state.refreshToken = action.payload.refreshToken;
         state.error = null;
+        const data = action.payload;
+        const branchIds = data.user?.branchIds || [];
 
-        registerPush(action.payload.user);
+        if (branchIds.length > 1) {
+          // Multi-branch: pause and ask user to choose
+          state.needsBranchSelect = true;
+          state.pendingLoginData = data;
+        } else {
+          // Single branch — log in immediately
+          const branchId = data.user?.branchId || branchIds[0] || null;
+          if (branchId) localStorage.setItem("activeBranchId", String(branchId));
+          localStorage.setItem("token", data.token);
+          localStorage.setItem("refreshToken", data.refreshToken);
+          localStorage.setItem("user", JSON.stringify(data.user));
+          state.isAuth = true;
+          state.user = data.user;
+          state.token = data.token;
+          state.refreshToken = data.refreshToken;
+          registerPush(data.user);
+        }
       })
       .addCase(loginMentor.rejected, (state, action) => {
         state.loading = false;
@@ -105,5 +131,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout, loadFromStorage, clearError } = authSlice.actions;
+export const { logout, loadFromStorage, clearError, selectBranch } = authSlice.actions;
 export default authSlice.reducer;

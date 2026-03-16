@@ -5,7 +5,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 export const api = {
     // --- Auth ---
     login: async (name, password) => {
-        const res = await fetch(`${API_URL}/api/mentors/login`, {
+        const res = await fetch(`${API_URL}/mentors/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ name, password }),
@@ -19,17 +19,17 @@ export const api = {
 
     // --- Lessons / Interns ---
     getPendingInterns: async () => {
-        const res = await secureFetch(`${API_URL}/api/lessons/pending`);
+        const res = await secureFetch(`${API_URL}/lessons/pending`);
         if (!res.ok) throw new Error("Ошибка загрузки стажёров");
         return res.json();
     },
     getBranchManagerInterns: async () => {
-        const res = await secureFetch(`${API_URL}/api/interns/branch-manager/interns`);
+        const res = await secureFetch(`${API_URL}/interns/branch-manager/interns`);
         if (!res.ok) throw new Error("Ошибка загрузки стажёров филиала");
         return res.json();
     },
     createComplaint: async (internId, payload) => {
-        const res = await secureFetch(`${API_URL}/api/interns/${internId}/complaints`, {
+        const res = await secureFetch(`${API_URL}/interns/${internId}/complaints`, {
             method: "POST",
             body: JSON.stringify(payload),
         });
@@ -38,7 +38,7 @@ export const api = {
     },
 
     rateIntern: async (internId, data) => {
-        const res = await secureFetch(`${API_URL}/api/interns/${internId}/rate`, {
+        const res = await secureFetch(`${API_URL}/interns/${internId}/rate`, {
             method: "POST",
             body: JSON.stringify(data),
         });
@@ -48,7 +48,7 @@ export const api = {
 
     // --- Mentor Stats ---
     getStats: async (mentorId) => {
-        const res = await secureFetch(`${API_URL}/api/mentors/${mentorId}/stats`);
+        const res = await secureFetch(`${API_URL}/mentors/${mentorId}/stats`);
         if (!res.ok) throw new Error("Ошибка загрузки статистики");
         const json = await res.json();
         return json.data; // { monthLessons, monthFeedbacks, totalDebt, debtDetails }
@@ -56,7 +56,7 @@ export const api = {
 
     // --- Rules ---
     getRules: async () => {
-        const res = await secureFetch(`${API_URL}/api/rules`);
+        const res = await secureFetch(`${API_URL}/rules?limit=1000`);
         if (!res.ok) throw new Error("Ошибка загрузки правил");
         const json = await res.json();
         return json.data || [];
@@ -64,7 +64,7 @@ export const api = {
 
     // --- Notifications ---
     subscribeToPush: async (userId, subscription) => {
-        return secureFetch(`${API_URL}/api/notifications/subscribe`, {
+        return secureFetch(`${API_URL}/notifications/subscribe`, {
             method: "POST",
             body: JSON.stringify({
                 subscription,

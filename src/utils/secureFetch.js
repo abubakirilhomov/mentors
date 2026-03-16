@@ -4,11 +4,13 @@ export const secureFetch = async (url, options = {}) => {
   let token = localStorage.getItem("token");
   const refreshToken = localStorage.getItem("refreshToken");
 
-  // Подставляем токен
+  // Подставляем токен и активный филиал
+  const activeBranch = localStorage.getItem("activeBranchId");
   options.headers = {
     ...(options.headers || {}),
     Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",
+    ...(activeBranch ? { "X-Active-Branch": activeBranch } : {}),
   };
 
   let response = await fetch(url, options);
@@ -16,7 +18,7 @@ export const secureFetch = async (url, options = {}) => {
   // Если токен истёк
   if (response.status === 401 && refreshToken) {
     // Запрашиваем новый токен
-    const refreshRes = await fetch(`${import.meta.env.VITE_API_URL}/api/mentors/refresh-token`, {
+    const refreshRes = await fetch(`${import.meta.env.VITE_API_URL}/mentors/refresh-token`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refreshToken }),

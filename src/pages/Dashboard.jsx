@@ -15,11 +15,13 @@ import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 
+import { Link } from "react-router-dom";
 import {
   LogOut,
   RefreshCw,
   Users,
   AlertCircle,
+  UserCircle,
 } from "lucide-react";
 
 const Dashboard = () => {
@@ -87,7 +89,10 @@ const Dashboard = () => {
       setStats(prev => prev ? ({
         ...prev,
         monthFeedbacks: prev.monthFeedbacks + 1,
-        totalDebt: Math.max(0, prev.totalDebt - 1)
+        totalDebt: Math.max(0, prev.totalDebt - 1),
+        debtDetails: Array.isArray(prev.debtDetails)
+          ? prev.debtDetails.filter((d) => String(d.lessonId) !== String(lessonId))
+          : prev.debtDetails,
       }) : null);
 
     } catch (err) {
@@ -130,6 +135,14 @@ const Dashboard = () => {
                 <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
               </button>
 
+              <Link
+                to="/profile"
+                className="p-2 text-gray-400 hover:text-gray-600"
+                title="Профиль"
+              >
+                <UserCircle className="w-5 h-5" />
+              </Link>
+
               <button
                 onClick={handleLogout}
                 className="p-2 text-gray-400 hover:text-red-600"
@@ -155,37 +168,47 @@ const Dashboard = () => {
           <BranchManagerDashboard />
         ) : (
           <>
+            {/* Greeting */}
+            <div className="max-w-4xl mx-auto mb-6">
+              <h2 className="text-xl font-bold text-gray-900">
+                Привет, {user?.name}{user?.lastName ? ` ${user.lastName}` : ""}!
+              </h2>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Вот что происходит в этом месяце.
+              </p>
+            </div>
+
             {/* Stats Section */}
-        <div className="max-w-4xl mx-auto">
-          <StatsCard stats={stats} loading={loading && !stats} />
-        </div>
+            <div className="max-w-4xl mx-auto">
+              <StatsCard stats={stats} loading={loading && !stats} />
+            </div>
 
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-2">
-            <Users className="w-6 h-6 text-red-500" />
-            <h2 className="lg:text-2xl text-lg font-bold text-gray-900">
-              Стажёры на оценку
-            </h2>
-          </div>
-          <p className="text-gray-600 text-xs">
-            {interns.length > 0
-              ? `У вас ${interns.length} неоценённых занятий. Пожалуйста, оставьте фидбэк.`
-              : "Отличная работа! Все стажёры оценены."}
-          </p>
-        </div>
+            <div className="mb-8 max-w-4xl mx-auto">
+              <div className="flex items-center gap-2 mb-2">
+                <Users className="w-6 h-6 text-red-500" />
+                <h2 className="lg:text-2xl text-lg font-bold text-gray-900">
+                  Стажёры на оценку
+                </h2>
+              </div>
+              <p className="text-gray-600 text-xs">
+                {interns.length > 0
+                  ? `У вас ${interns.length} неоценённых занятий. Пожалуйста, оставьте фидбэк.`
+                  : "Отличная работа! Все стажёры оценены."}
+              </p>
+            </div>
 
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-red-700">
-            <AlertCircle className="w-5 h-5" />
-            <span>{error}</span>
-            <button
-              onClick={loadData}
-              className="ml-auto text-red-600 underline"
-            >
-              Повторить
-            </button>
-          </div>
-        )}
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-red-700 max-w-4xl mx-auto">
+                <AlertCircle className="w-5 h-5" />
+                <span>{error}</span>
+                <button
+                  onClick={loadData}
+                  className="ml-auto text-red-600 underline"
+                >
+                  Повторить
+                </button>
+              </div>
+            )}
 
         {/* Empty state */}
         {interns.length === 0 && !loading ? (

@@ -22,7 +22,7 @@ export async function registerPush(user) {
       applicationServerKey: urlBase64ToUint8Array(publicVapidKey),
     });
 
-    const res = await fetch(`${API_URL}/api/notifications/subscribe`, {
+    const res = await fetch(`${API_URL}/notifications/subscribe`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

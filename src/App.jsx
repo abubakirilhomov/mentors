@@ -6,6 +6,7 @@ import { loadFromStorage } from './store/authSlice';
 import PrivateRoute from './components/PrivateRoute';
 import LoginPage from './pages/LoginPage';
 import Dashboard from './pages/Dashboard';
+import Profile from './pages/Profile';
 import { ToastContainer } from 'react-toastify';
 
 const AppContent = () => {
@@ -26,6 +27,14 @@ const AppContent = () => {
             element={
               <PrivateRoute>
                 <Dashboard />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <PrivateRoute>
+                <Profile />
               </PrivateRoute>
             }
           />

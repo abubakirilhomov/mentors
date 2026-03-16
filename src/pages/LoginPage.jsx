@@ -1,16 +1,36 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Navigate } from "react-router-dom";
-import { loginMentor } from "../store/authSlice";
-import { User, Lock, AlertCircle, Loader } from "lucide-react";
+import { loginMentor, selectBranch } from "../store/authSlice";
+import { User, Lock, AlertCircle, Loader, Building } from "lucide-react";
 
 const LoginPage = () => {
   const [name, setName] = useState("");
-  const [lastName, setLastName] = useState(""); // добавлено
+  const [lastName, setLastName] = useState("");
   const [password, setPassword] = useState("");
+  const [branchNames, setBranchNames] = useState({});
 
   const dispatch = useDispatch();
-  const { isAuth, loading, error } = useSelector((state) => state.auth);
+  const { isAuth, loading, error, needsBranchSelect, pendingLoginData } = useSelector((state) => state.auth);
+
+  // Load branch names for the selector screen
+  useEffect(() => {
+    if (needsBranchSelect && pendingLoginData?.user?.branchIds?.length) {
+      const API = import.meta.env.VITE_API_URL;
+      fetch(`${API}/branches`, {
+        headers: { Authorization: `Bearer ${pendingLoginData.token}` },
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          const map = {};
+          (Array.isArray(data) ? data : data.data || []).forEach((b) => {
+            map[b._id] = b.name;
+          });
+          setBranchNames(map);
+        })
+        .catch(() => {});
+    }
+  }, [needsBranchSelect, pendingLoginData]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -18,13 +38,43 @@ const LoginPage = () => {
       const credentials = lastName.trim()
         ? { name: name.trim(), lastName: lastName.trim(), password }
         : { name: name.trim(), password };
-
       dispatch(loginMentor(credentials));
     }
   };
 
   if (isAuth) {
     return <Navigate to="/dashboard" replace />;
+  }
+
+  // Branch selector screen
+  if (needsBranchSelect && pendingLoginData) {
+    const branchIds = pendingLoginData.user?.branchIds || [];
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+          <div className="text-center mb-6">
+            <div className="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+              <Building className="w-7 h-7 text-red-500" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800">Выберите филиал</h2>
+            <p className="text-gray-500 text-sm mt-1">
+              Вы работаете в нескольких филиалах. Выберите активный для этой сессии.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3">
+            {branchIds.map((id) => (
+              <button
+                key={id}
+                onClick={() => dispatch(selectBranch(String(id)))}
+                className="w-full py-4 px-5 rounded-xl border-2 border-gray-200 hover:border-red-400 hover:bg-red-50 text-left transition-all font-medium text-gray-700"
+              >
+                {branchNames[id] || id}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

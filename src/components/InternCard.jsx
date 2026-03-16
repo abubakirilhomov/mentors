@@ -177,7 +177,7 @@ const InternCard = ({ intern, onRate, mentorId, rules = [] }) => {
         </div>
         <div className="bg-orange-50 rounded-xl p-2 text-center">
           <div className="text-xl font-bold text-orange-600">
-            {Object.keys(intern.lessonsVisited || {}).length || 0}
+            {(intern.lessonsVisited || []).reduce((s, lv) => s + (lv.count || 0), 0)}
           </div>
           <div className="text-sm text-gray-600">Уроков посещено</div>
         </div>
