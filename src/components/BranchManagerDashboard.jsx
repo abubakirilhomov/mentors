@@ -1,21 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  AlertTriangle,
-  Phone,
-  RefreshCw,
-  Send,
-  MessageCircle,
-  ShieldAlert,
-} from "lucide-react";
+import { AlertTriangle, MessageCircle, Phone, RefreshCw, Send } from "lucide-react";
 import { toast } from "react-toastify";
 import { api } from "../services/api";
-
-const CATEGORY_STYLES = {
-  green: "bg-emerald-100 text-emerald-800 border-emerald-300",
-  yellow: "bg-amber-100 text-amber-800 border-amber-300",
-  red: "bg-rose-100 text-rose-800 border-rose-300",
-  black: "bg-slate-900 text-white border-slate-900",
-};
 
 const normalizeTelegramLink = (handle = "") => {
   const normalized = String(handle).replace(/^@/, "").trim();
@@ -29,6 +15,8 @@ const BranchManagerDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState(null);
   const [drafts, setDrafts] = useState({});
+  const [selectedIntern, setSelectedIntern] = useState(null);
+  const [search, setSearch] = useState("");
 
   const groupedRules = useMemo(() => {
     const groups = { green: [], yellow: [], red: [], black: [] };
@@ -57,6 +45,18 @@ const BranchManagerDashboard = () => {
   useEffect(() => {
     loadData();
   }, []);
+
+  const filteredInterns = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return interns;
+    return interns.filter((intern) =>
+      `${intern.name} ${intern.lastName} ${intern.username} ${intern.phoneNumber || ""} ${
+        intern.telegram || ""
+      }`
+        .toLowerCase()
+        .includes(q)
+    );
+  }, [interns, search]);
 
   const toggleRule = (internId, ruleId) => {
     setDrafts((prev) => {
@@ -118,164 +118,192 @@ const BranchManagerDashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-3xl bg-gradient-to-r from-orange-500 to-red-600 text-white px-6 py-5 shadow-lg">
-        <div className="flex items-center justify-between">
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
-            <h2 className="text-2xl font-bold">Стажёры филиала</h2>
-            <p className="text-white/90 text-sm mt-1">
-              Быстрая связь и жалобы по цветовым правилам
-            </p>
+            <h2 className="text-2xl font-bold text-slate-900">Стажёры филиала</h2>
+            <p className="text-slate-500 text-sm mt-1">Список, контакты и отправка жалоб</p>
           </div>
-          <button className="btn btn-sm border-0 bg-white text-red-600 hover:bg-white/90" onClick={loadData}>
-            <RefreshCw className="w-4 h-4" />
-            Обновить
-          </button>
+          <div className="flex gap-2">
+            <input
+              className="input input-bordered w-72"
+              placeholder="Поиск: ФИО, username, телефон"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <button className="btn btn-outline btn-sm" onClick={loadData}>
+              <RefreshCw className="w-4 h-4" />
+              Обновить
+            </button>
+          </div>
         </div>
       </div>
 
-      {interns.length === 0 ? (
+      {filteredInterns.length === 0 ? (
         <div className="alert">Нет стажёров в филиале</div>
       ) : (
-        <div className="grid gap-5">
-          {interns.map((intern) => {
-            const draft = drafts[intern._id] || { text: "", ruleIds: [] };
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+          <div className="grid grid-cols-12 gap-2 px-4 py-3 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase">
+            <div className="col-span-4">Стажёр</div>
+            <div className="col-span-2">Контакты</div>
+            <div className="col-span-2">Статус</div>
+            <div className="col-span-3">Последние уроки</div>
+            <div className="col-span-1 text-right">Действия</div>
+          </div>
+          {filteredInterns.map((intern) => {
             const tgLink = normalizeTelegramLink(intern.telegram);
             const hasPhone = Boolean(intern.phoneNumber && intern.phoneNumber !== "—");
 
             return (
               <div
                 key={intern._id}
-                className="rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-shadow"
+                className="grid grid-cols-12 gap-2 px-4 py-4 border-b border-slate-100 items-start"
               >
-                <div className="p-5 space-y-4">
-                  <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 rounded-full overflow-hidden bg-slate-100 flex items-center justify-center font-bold text-slate-600">
-                        {intern.profilePhoto ? (
-                          <img
-                            src={intern.profilePhoto}
-                            alt={`${intern.name} ${intern.lastName}`}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <>
-                            {intern.name?.[0]}
-                            {intern.lastName?.[0]}
-                          </>
-                        )}
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-semibold text-slate-900">
-                          {intern.name} {intern.lastName}
-                        </h3>
-                        <p className="text-sm text-slate-600">
-                          @{intern.username} • {intern.sphere || "—"} • {intern.grade}
-                        </p>
-                        <div className="mt-2 flex gap-2 flex-wrap">
-                          <a
-                            href={hasPhone ? `tel:${intern.phoneNumber}` : "#"}
-                            className={`btn btn-sm ${hasPhone ? "btn-success" : "btn-disabled"}`}
-                          >
-                            <Phone className="w-4 h-4" />
-                            Позвонить
-                          </a>
-                          <a
-                            href={tgLink || "#"}
-                            target="_blank"
-                            rel="noreferrer"
-                            className={`btn btn-sm ${tgLink ? "btn-info" : "btn-disabled"}`}
-                          >
-                            <MessageCircle className="w-4 h-4" />
-                            Telegram
-                          </a>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {intern.isPlanBlocked ? (
-                        <span className="badge badge-error gap-1">
-                          <AlertTriangle className="w-3 h-3" /> Заблокирован
-                        </span>
-                      ) : (
-                        <span className="badge badge-success">Активен</span>
-                      )}
-                      {intern.manualActivation?.isEnabled && (
-                        <span className="badge badge-warning">Ручная активация</span>
-                      )}
-                    </div>
+                <div className="col-span-4 flex gap-3">
+                  <div className="w-11 h-11 rounded-full overflow-hidden bg-slate-100 flex items-center justify-center font-bold text-slate-600 shrink-0">
+                    {intern.profilePhoto ? (
+                      <img
+                        src={intern.profilePhoto}
+                        alt={`${intern.name} ${intern.lastName}`}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <>
+                        {intern.name?.[0]}
+                        {intern.lastName?.[0]}
+                      </>
+                    )}
                   </div>
-
-                  <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
-                    <h4 className="text-sm font-semibold text-slate-700 mb-2">Последние уроки</h4>
-                    <div className="text-sm text-slate-700 space-y-1">
-                      {(intern.lastLessons || []).length === 0 && <p>Уроков пока нет</p>}
-                      {(intern.lastLessons || []).map((lesson) => (
-                        <p key={lesson._id}>
-                          {new Date(lesson.date).toLocaleDateString("ru-RU")} • {lesson.topic} •{" "}
-                          {lesson.mentor?.name} {lesson.mentor?.lastName || ""}
-                        </p>
-                      ))}
-                    </div>
+                  <div>
+                    <p className="font-semibold text-slate-900">
+                      {intern.name} {intern.lastName}
+                    </p>
+                    <p className="text-sm text-slate-600">@{intern.username}</p>
+                    <p className="text-xs text-slate-500">{intern.sphere || "—"} • {intern.grade}</p>
                   </div>
+                </div>
 
-                  <div className="rounded-xl border border-red-200 bg-red-50/60 p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <ShieldAlert className="w-4 h-4 text-red-600" />
-                      <h4 className="font-semibold text-red-700">Жалоба по правилам</h4>
+                <div className="col-span-2 space-y-2">
+                  <a
+                    href={hasPhone ? `tel:${intern.phoneNumber}` : "#"}
+                    className={`btn btn-xs w-full ${hasPhone ? "btn-success" : "btn-disabled"}`}
+                  >
+                    <Phone className="w-3 h-3" /> Позвонить
+                  </a>
+                  <a
+                    href={tgLink || "#"}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={`btn btn-xs w-full ${tgLink ? "btn-info" : "btn-disabled"}`}
+                  >
+                    <MessageCircle className="w-3 h-3" /> Telegram
+                  </a>
+                </div>
+
+                <div className="col-span-2 pt-1">
+                  {intern.isPlanBlocked ? (
+                    <span className="badge badge-error gap-1">
+                      <AlertTriangle className="w-3 h-3" /> Заблокирован
+                    </span>
+                  ) : (
+                    <span className="badge badge-success">Активен</span>
+                  )}
+                  {intern.manualActivation?.isEnabled && (
+                    <div className="mt-2">
+                      <span className="badge badge-warning">Ручная активация</span>
                     </div>
+                  )}
+                </div>
 
-                    <div className="space-y-3">
-                      {Object.entries(groupedRules).map(([category, categoryRules]) => (
-                        <div key={category}>
-                          <p className="text-xs uppercase tracking-wide text-slate-500 mb-1">
-                            {category}
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            {categoryRules.map((rule) => {
-                              const selected = draft.ruleIds.includes(rule._id);
-                              return (
-                                <button
-                                  key={rule._id}
-                                  type="button"
-                                  onClick={() => toggleRule(intern._id, rule._id)}
-                                  className={`px-3 py-1 rounded-full border text-xs ${
-                                    CATEGORY_STYLES[category]
-                                  } ${selected ? "ring-2 ring-offset-1 ring-slate-400" : "opacity-85"}`}
-                                  title={rule.title}
-                                >
-                                  {rule.title}
-                                </button>
-                              );
-                            })}
-                            {categoryRules.length === 0 && (
-                              <span className="text-xs text-slate-400">Нет правил</span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                <div className="col-span-3 text-sm text-slate-700">
+                  {(intern.lastLessons || []).length === 0 && <p className="text-slate-400">Уроков пока нет</p>}
+                  {(intern.lastLessons || []).slice(0, 2).map((lesson) => (
+                    <p key={lesson._id} className="leading-5">
+                      {new Date(lesson.date).toLocaleDateString("ru-RU")} • {lesson.topic}
+                    </p>
+                  ))}
+                </div>
 
-                    <textarea
-                      className="textarea textarea-bordered w-full mt-3"
-                      placeholder="Комментарий к жалобе (необязательно)"
-                      value={draft.text}
-                      onChange={(e) => updateText(intern._id, e.target.value)}
-                    />
-
-                    <button
-                      className="btn btn-error mt-3"
-                      onClick={() => handleSendComplaint(intern._id)}
-                      disabled={savingId === intern._id}
-                    >
-                      <Send className="w-4 h-4" />
-                      Отправить жалобу
-                    </button>
-                  </div>
+                <div className="col-span-1 flex justify-end">
+                  <button className="btn btn-error btn-sm" onClick={() => setSelectedIntern(intern)}>
+                    Жалоба
+                  </button>
                 </div>
               </div>
             );
           })}
+        </div>
+      )}
+
+      {selectedIntern && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold">
+                Жалоба: {selectedIntern.name} {selectedIntern.lastName}
+              </h3>
+              <button className="btn btn-sm btn-ghost" onClick={() => setSelectedIntern(null)}>
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {Object.entries(groupedRules).map(([category, categoryRules]) => (
+                <div key={category}>
+                  <p className="text-xs uppercase tracking-wide text-slate-500 mb-1">{category}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {categoryRules.map((rule) => {
+                      const draft = drafts[selectedIntern._id] || { text: "", ruleIds: [] };
+                      const checked = draft.ruleIds.includes(rule._id);
+                      return (
+                        <label
+                          key={rule._id}
+                          className={`flex items-start gap-2 border rounded-lg p-2 cursor-pointer ${
+                            checked ? "border-slate-700 bg-slate-50" : "border-slate-200"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleRule(selectedIntern._id, rule._id)}
+                            className="checkbox checkbox-sm mt-0.5"
+                          />
+                          <span className="text-sm">{rule.title}</span>
+                        </label>
+                      );
+                    })}
+                    {categoryRules.length === 0 && (
+                      <p className="text-sm text-slate-400">Нет правил в этой категории</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <textarea
+              className="textarea textarea-bordered w-full mt-4"
+              placeholder="Комментарий к жалобе (необязательно)"
+              value={(drafts[selectedIntern._id] || { text: "" }).text}
+              onChange={(e) => updateText(selectedIntern._id, e.target.value)}
+            />
+
+            <div className="flex justify-end gap-2 mt-4">
+              <button className="btn btn-ghost" onClick={() => setSelectedIntern(null)}>
+                Отмена
+              </button>
+              <button
+                className="btn btn-error"
+                onClick={async () => {
+                  await handleSendComplaint(selectedIntern._id);
+                  setSelectedIntern(null);
+                }}
+                disabled={savingId === selectedIntern._id}
+              >
+                <Send className="w-4 h-4" />
+                Отправить жалобу
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
