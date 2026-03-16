@@ -28,10 +28,10 @@ export const api = {
         if (!res.ok) throw new Error("Ошибка загрузки стажёров филиала");
         return res.json();
     },
-    createComplaint: async (internId, text) => {
+    createComplaint: async (internId, payload) => {
         const res = await secureFetch(`${API_URL}/api/interns/${internId}/complaints`, {
             method: "POST",
-            body: JSON.stringify({ text }),
+            body: JSON.stringify(payload),
         });
         if (!res.ok) throw new Error("Ошибка при отправке жалобы");
         return res.json();
