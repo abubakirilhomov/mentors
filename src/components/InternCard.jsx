@@ -126,10 +126,18 @@ const InternCard = ({ intern, onRate, mentorId, rules = [] }) => {
           animate={{ scale: 1 }}
           transition={{ duration: 0.4, delay: 0.2 }}
         >
-          <span className="text-2xl font-bold text-white">
-            {intern.name[0]}
-            {intern.lastName[0]}
-          </span>
+          {intern.profilePhoto ? (
+            <img
+              src={intern.profilePhoto}
+              alt={`${intern.name} ${intern.lastName}`}
+              className="w-full h-full rounded-full object-cover"
+            />
+          ) : (
+            <span className="text-2xl font-bold text-white">
+              {intern.name[0]}
+              {intern.lastName[0]}
+            </span>
+          )}
         </motion.div>
         <h2 className="text-2xl font-bold text-gray-800 mb-1">
           {intern.name} {intern.lastName}

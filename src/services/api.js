@@ -23,6 +23,19 @@ export const api = {
         if (!res.ok) throw new Error("Ошибка загрузки стажёров");
         return res.json();
     },
+    getBranchManagerInterns: async () => {
+        const res = await secureFetch(`${API_URL}/api/interns/branch-manager/interns`);
+        if (!res.ok) throw new Error("Ошибка загрузки стажёров филиала");
+        return res.json();
+    },
+    createComplaint: async (internId, text) => {
+        const res = await secureFetch(`${API_URL}/api/interns/${internId}/complaints`, {
+            method: "POST",
+            body: JSON.stringify({ text }),
+        });
+        if (!res.ok) throw new Error("Ошибка при отправке жалобы");
+        return res.json();
+    },
 
     rateIntern: async (internId, data) => {
         const res = await secureFetch(`${API_URL}/api/interns/${internId}/rate`, {

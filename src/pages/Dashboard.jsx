@@ -9,6 +9,7 @@ import InternCard from "../components/InternCard";
 import StatsCard from "../components/StatsCard";
 import PushManager from "../components/PushManager";
 import InstallPrompt from "../components/InstallPrompt";
+import BranchManagerDashboard from "../components/BranchManagerDashboard";
 
 import "swiper/css";
 import "swiper/css/navigation";
@@ -25,6 +26,7 @@ const Dashboard = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
   const mentorId = user?._id;
+  const isBranchManager = user?.role === "branchManager";
 
   const [interns, setInterns] = useState([]);
   const [stats, setStats] = useState(null);
@@ -33,7 +35,10 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
 
   const loadData = useCallback(async () => {
-    if (!mentorId) return;
+    if (!mentorId || isBranchManager) {
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -53,7 +58,7 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, [mentorId]);
+  }, [mentorId, isBranchManager]);
 
   useEffect(() => {
     loadData();
@@ -109,7 +114,9 @@ const Dashboard = () => {
                 <h1 className="text-md lg:text-xl font-bold text-gray-900">
                   Mars IT School
                 </h1>
-                <p className="text-sm text-gray-600">Панель ментора</p>
+                <p className="text-sm text-gray-600">
+                  {isBranchManager ? "Панель branch manager" : "Панель ментора"}
+                </p>
               </div>
             </div>
 
@@ -144,7 +151,11 @@ const Dashboard = () => {
         </div>
         <InstallPrompt />
 
-        {/* Stats Section */}
+        {isBranchManager ? (
+          <BranchManagerDashboard />
+        ) : (
+          <>
+            {/* Stats Section */}
         <div className="max-w-4xl mx-auto">
           <StatsCard stats={stats} loading={loading && !stats} />
         </div>
@@ -220,6 +231,8 @@ const Dashboard = () => {
               </SwiperSlide>
             ))}
           </Swiper>
+        )}
+          </>
         )}
       </main>
 

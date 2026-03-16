@@ -37,7 +37,7 @@ const LoginPage = () => {
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
             Mars IT School
           </h1>
-          <p className="text-gray-600">Вход для менторов</p>
+          <p className="text-gray-600">Вход для менторов и branch manager</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
