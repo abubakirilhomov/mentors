@@ -134,8 +134,8 @@ const InternCard = ({ intern, onRate, mentorId, rules = [] }) => {
             />
           ) : (
             <span className="text-2xl font-bold text-white">
-              {intern.name[0]}
-              {intern.lastName[0]}
+              {intern.name?.[0]}
+              {intern.lastName?.[0]}
             </span>
           )}
         </motion.div>
@@ -164,7 +164,7 @@ const InternCard = ({ intern, onRate, mentorId, rules = [] }) => {
             ⚠️ Блокировка
           </span>
         )}
-        <p className="text-gray-600 text-sm">{intern.branch.name}</p>
+        <p className="text-gray-600 text-sm">{intern.branch?.name || intern.branches?.[0]?.branch?.name || "—"}</p>
       </div>
 
       {/* Общий балл и количество уроков */}
