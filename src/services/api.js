@@ -46,12 +46,24 @@ export const api = {
         return res.json();
     },
 
+    getAllInterns: async () => {
+        return secureFetch(`${API_URL}/interns`);
+    },
+
     // --- Mentor Stats ---
     getStats: async (mentorId) => {
         const res = await secureFetch(`${API_URL}/mentors/${mentorId}/stats`);
         if (!res.ok) throw new Error("Ошибка загрузки статистики");
         const json = await res.json();
         return json.data; // { monthLessons, monthFeedbacks, totalDebt, debtDetails }
+    },
+
+    getLessons: async (params = {}) => {
+        const q = new URLSearchParams();
+        if (params.status) q.set("status", params.status);
+        if (params.startDate) q.set("startDate", params.startDate);
+        if (params.endDate) q.set("endDate", params.endDate);
+        return secureFetch(`${API_URL}/lessons?${q.toString()}`);
     },
 
     // --- Rules ---

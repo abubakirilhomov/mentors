@@ -159,6 +159,11 @@ const InternCard = ({ intern, onRate, mentorId, rules = [] }) => {
         >
           {intern.grade}
         </span>
+        {intern.isPlanBlocked && (
+          <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600 font-medium">
+            ⚠️ Блокировка
+          </span>
+        )}
         <p className="text-gray-600 text-sm">{intern.branch.name}</p>
       </div>
 
