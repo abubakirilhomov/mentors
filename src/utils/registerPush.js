@@ -1,6 +1,6 @@
 export async function registerPush(user) {
-  if (!("serviceWorker" in navigator)) {
-    console.warn("❌ Service Worker не поддерживается");
+  if (!("serviceWorker" in navigator) || typeof Notification === "undefined") {
+    console.warn("❌ Push-уведомления не поддерживаются в этом браузере");
     return;
   }
 

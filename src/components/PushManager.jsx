@@ -2,8 +2,12 @@ import React, { useEffect, useState } from "react";
 import { Bell, BellOff } from "lucide-react";
 import { api } from "../services/api";
 
+const notificationsSupported = typeof Notification !== "undefined";
+
 const PushManager = ({ userId }) => {
-    const [permission, setPermission] = useState(Notification.permission);
+    const [permission, setPermission] = useState(
+        notificationsSupported ? Notification.permission : "denied"
+    );
     const [isSubscribed, setIsSubscribed] = useState(false);
 
     useEffect(() => {
@@ -16,6 +20,8 @@ const PushManager = ({ userId }) => {
             });
         }
     }, []);
+
+    if (!notificationsSupported) return null;
 
     const subscribe = async () => {
         try {
