@@ -130,7 +130,7 @@ const MapPage = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col bg-gray-50" style={{ height: "calc(100dvh - 56px)" }}>
       {/* Header */}
       <div className="sticky top-0 z-[1000] bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-2">
