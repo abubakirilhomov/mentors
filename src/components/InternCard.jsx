@@ -121,7 +121,7 @@ const InternCard = ({ intern, onRate, mentorId, rules = [] }) => {
       {/* Аватар + имя */}
       <div className="text-center mb-6">
         <motion.div
-          className="w-20 h-20 bg-gradient-to-br from-red-500 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4"
+          className="w-20 h-20 bg-gradient-to-br from-red-500 to-orange-500 rounded-full overflow-hidden flex items-center justify-center mx-auto mb-4"
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ duration: 0.4, delay: 0.2 }}
@@ -130,7 +130,7 @@ const InternCard = ({ intern, onRate, mentorId, rules = [] }) => {
             <img
               src={intern.profilePhoto}
               alt={`${intern.name} ${intern.lastName}`}
-              className="w-full h-full rounded-full object-cover"
+              className="w-full h-full object-cover"
             />
           ) : (
             <span className="text-2xl font-bold text-white">

@@ -22,7 +22,66 @@ import {
   Users,
   AlertCircle,
   UserCircle,
+  ChevronRight,
 } from "lucide-react";
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+
+const GRADE_LABELS = {
+  junior: "Junior",
+  strongJunior: "Strong Junior",
+  middle: "Middle",
+  strongMiddle: "Strong Middle",
+  senior: "Senior",
+};
+
+const GRADE_COLORS = {
+  junior: "bg-green-100 text-green-700",
+  strongJunior: "bg-blue-100 text-blue-700",
+  middle: "bg-yellow-100 text-yellow-700",
+  strongMiddle: "bg-orange-100 text-orange-700",
+  senior: "bg-red-100 text-red-700",
+};
+
+// ── Desktop intern list item ──────────────────────────────────────────────────
+
+const InternListItem = ({ intern, isActive, onClick }) => (
+  <button
+    onClick={onClick}
+    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all ${
+      isActive
+        ? "bg-red-50 border border-red-200 shadow-sm"
+        : "hover:bg-gray-50 border border-transparent"
+    }`}
+  >
+    {/* Avatar */}
+    <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-red-400 to-orange-400 flex-shrink-0 flex items-center justify-center">
+      {intern.profilePhoto ? (
+        <img src={intern.profilePhoto} alt="" className="w-full h-full object-cover" />
+      ) : (
+        <span className="text-sm font-bold text-white">
+          {intern.name?.[0]}{intern.lastName?.[0]}
+        </span>
+      )}
+    </div>
+
+    {/* Info */}
+    <div className="flex-1 min-w-0">
+      <p className={`text-sm font-semibold truncate ${isActive ? "text-red-700" : "text-gray-900"}`}>
+        {intern.name} {intern.lastName}
+      </p>
+      <p className="text-xs text-gray-500 truncate">{intern.topic || "—"}</p>
+    </div>
+
+    {/* Grade + arrow */}
+    <div className="flex items-center gap-1.5 flex-shrink-0">
+      <span className={`text-xs px-1.5 py-0.5 rounded-md font-medium ${GRADE_COLORS[intern.grade] || "bg-gray-100 text-gray-600"}`}>
+        {GRADE_LABELS[intern.grade] || intern.grade}
+      </span>
+      <ChevronRight className={`w-4 h-4 ${isActive ? "text-red-400" : "text-gray-300"}`} />
+    </div>
+  </button>
+);
 
 const Dashboard = () => {
   const dispatch = useDispatch();
@@ -35,6 +94,7 @@ const Dashboard = () => {
   const [rules, setRules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeIdx, setActiveIdx] = useState(0); // desktop: selected intern index
 
   const loadData = useCallback(async () => {
     if (!mentorId || isBranchManager) {
@@ -83,7 +143,12 @@ const Dashboard = () => {
       });
 
       // Update local state: remove ONLY this specific lesson (not all lessons with this intern)
-      setInterns((prev) => prev.filter((i) => i.lessonId !== lessonId));
+      setInterns((prev) => {
+        const next = prev.filter((i) => i.lessonId !== lessonId);
+        // keep activeIdx in bounds
+        setActiveIdx((idx) => Math.min(idx, Math.max(0, next.length - 1)));
+        return next;
+      });
 
       // Update stats locally to reflect change instantly
       setStats(prev => prev ? ({
@@ -210,7 +275,7 @@ const Dashboard = () => {
               </div>
             )}
 
-        {/* Empty state / Swiper */}
+        {/* Empty state */}
         {interns.length === 0 && !loading ? (
           <div className="max-w-4xl mx-auto px-4 py-12 text-center">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -220,36 +285,69 @@ const Dashboard = () => {
             <p className="text-sm text-gray-400">Нет стажёров, ожидающих оценки</p>
           </div>
         ) : (
-          <Swiper
-            modules={[Navigation, Pagination]}
-            spaceBetween={30}
-            slidesPerView={1}
-            navigation={{
-              nextEl: ".swiper-button-next-custom",
-              prevEl: ".swiper-button-prev-custom",
-            }}
-            pagination={{
-              clickable: true,
-              bulletClass: "swiper-pagination-bullet-custom",
-              bulletActiveClass: "swiper-pagination-bullet-active-custom",
-            }}
-            breakpoints={{
-              768: { slidesPerView: 2 },
-              1024: { slidesPerView: 3 },
-            }}
-            className="pb-16"
-          >
-            {interns.map((intern, index) => (
-              <SwiperSlide key={index}>
-                <InternCard
-                  intern={intern}
-                  mentorId={mentorId}
-                  rules={rules}
-                  onRate={handleRate}
-                />
-              </SwiperSlide>
-            ))}
-          </Swiper>
+          <>
+            {/* ── Mobile: Swiper (< md) ─────────────────────────── */}
+            <div className="md:hidden">
+              <Swiper
+                modules={[Navigation, Pagination]}
+                spaceBetween={20}
+                slidesPerView={1}
+                pagination={{
+                  clickable: true,
+                  bulletClass: "swiper-pagination-bullet-custom",
+                  bulletActiveClass: "swiper-pagination-bullet-active-custom",
+                }}
+                className="pb-12"
+              >
+                {interns.map((intern, index) => (
+                  <SwiperSlide key={index}>
+                    <InternCard
+                      intern={intern}
+                      mentorId={mentorId}
+                      rules={rules}
+                      onRate={handleRate}
+                    />
+                  </SwiperSlide>
+                ))}
+              </Swiper>
+            </div>
+
+            {/* ── Desktop: master-detail (≥ md) ────────────────── */}
+            <div className="hidden md:flex gap-6 max-w-5xl mx-auto items-start">
+              {/* Left: intern list */}
+              <div className="w-72 flex-shrink-0 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                  <span className="text-sm font-semibold text-gray-700">Ожидают оценки</span>
+                  <span className="text-xs bg-red-100 text-red-600 font-semibold px-2 py-0.5 rounded-full">
+                    {interns.length}
+                  </span>
+                </div>
+                <div className="p-2 max-h-[70vh] overflow-y-auto space-y-0.5">
+                  {interns.map((intern, idx) => (
+                    <InternListItem
+                      key={intern.lessonId || idx}
+                      intern={intern}
+                      isActive={activeIdx === idx}
+                      onClick={() => setActiveIdx(idx)}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Right: rating panel */}
+              <div className="flex-1 sticky top-24">
+                {interns[activeIdx] ? (
+                  <InternCard
+                    key={interns[activeIdx].lessonId || activeIdx}
+                    intern={interns[activeIdx]}
+                    mentorId={mentorId}
+                    rules={rules}
+                    onRate={handleRate}
+                  />
+                ) : null}
+              </div>
+            </div>
+          </>
         )}
           </>
         )}
