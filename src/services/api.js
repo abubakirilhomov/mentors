@@ -50,6 +50,14 @@ export const api = {
         return secureFetch(`${API_URL}/interns`);
     },
 
+    // --- Location ---
+    getMyInternsLocations: async () => {
+        const res = await secureFetch(`${API_URL}/locations/my-interns`);
+        if (!res.ok) throw new Error("Ошибка загрузки геопозиций");
+        const json = await res.json();
+        return json.data || [];
+    },
+
     // --- Mentor Stats ---
     getStats: async (mentorId) => {
         const res = await secureFetch(`${API_URL}/mentors/${mentorId}/stats`);

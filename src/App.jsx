@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import LessonsPage from './pages/LessonsPage';
 import InternsPage from './pages/InternsPage';
+import MapPage from './pages/MapPage';
 import BottomNav from './components/BottomNav';
 import { ToastContainer } from 'react-toastify';
 
@@ -55,6 +56,14 @@ const AppContent = () => {
             element={
               <PrivateRoute>
                 <InternsPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/map"
+            element={
+              <PrivateRoute>
+                <MapPage />
               </PrivateRoute>
             }
           />

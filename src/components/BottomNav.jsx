@@ -1,11 +1,12 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { Home, Users, BookOpen, UserCircle } from "lucide-react";
+import { Home, Users, BookOpen, UserCircle, Map } from "lucide-react";
 
 const BottomNav = () => {
   const items = [
     { to: "/dashboard", icon: Home, label: "Главная" },
     { to: "/interns", icon: Users, label: "Стажёры" },
+    { to: "/map", icon: Map, label: "Карта" },
     { to: "/lessons", icon: BookOpen, label: "Уроки" },
     { to: "/profile", icon: UserCircle, label: "Профиль" },
   ];
