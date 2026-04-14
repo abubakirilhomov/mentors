@@ -17,17 +17,24 @@ export const loginMentor = createAsyncThunk(
   "auth/loginMentor",
   async ({ name, lastName, password }, { rejectWithValue }) => {
     try {
-      const payload = lastName?.trim()
-        ? { name, lastName: lastName.trim(), password }
-        : { name, password };
+      const trimmedName = String(name || "").trim();
+      const trimmedLastName = String(lastName || "").trim();
+
+      if (!trimmedName || !trimmedLastName || !password) {
+        return rejectWithValue("Заполните имя, фамилию и пароль");
+      }
 
       const response = await fetch(`${apiUrl}/mentors/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          name: trimmedName,
+          lastName: trimmedLastName,
+          password,
+        }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
       if (!response.ok) {
         return rejectWithValue(data.message || "Ошибка авторизации");
       }
