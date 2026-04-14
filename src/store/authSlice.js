@@ -1,10 +1,23 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { registerPush } from "../utils/registerPush";
 
+const PENDING_LOGIN_KEY = "pendingLoginData";
+
+const readPendingLogin = () => {
+  try {
+    const raw = sessionStorage.getItem(PENDING_LOGIN_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+const initialPending = readPendingLogin();
+
 const initialState = {
   isAuth: false,
-  needsBranchSelect: false,  // true when mentor has multiple branches
-  pendingLoginData: null,    // holds login response until branch is chosen
+  needsBranchSelect: Boolean(initialPending),
+  pendingLoginData: initialPending,
   user: null,
   token: null,
   refreshToken: null,
@@ -61,6 +74,7 @@ const authSlice = createSlice({
       localStorage.removeItem("user");
       localStorage.removeItem("refreshToken");
       localStorage.removeItem("activeBranchId");
+      sessionStorage.removeItem(PENDING_LOGIN_KEY);
     },
     selectBranch: (state, action) => {
       const branchId = action.payload;
@@ -69,11 +83,17 @@ const authSlice = createSlice({
       localStorage.setItem("token", data.token);
       localStorage.setItem("refreshToken", data.refreshToken);
       localStorage.setItem("user", JSON.stringify({ ...data.user, activeBranchId: branchId }));
+      sessionStorage.removeItem(PENDING_LOGIN_KEY);
       state.isAuth = true;
       state.needsBranchSelect = false;
       state.user = { ...data.user, activeBranchId: branchId };
       state.token = data.token;
       state.refreshToken = data.refreshToken;
+      state.pendingLoginData = null;
+    },
+    cancelBranchSelect: (state) => {
+      sessionStorage.removeItem(PENDING_LOGIN_KEY);
+      state.needsBranchSelect = false;
       state.pendingLoginData = null;
     },
     updateToken: (state, action) => {
@@ -114,9 +134,13 @@ const authSlice = createSlice({
         const branchIds = data.user?.branchIds || [];
 
         if (branchIds.length > 1) {
-          // Multi-branch: pause and ask user to choose
+          // Multi-branch: pause and ask user to choose.
+          // Persist to sessionStorage so reload on the branch-picker keeps the flow.
           state.needsBranchSelect = true;
           state.pendingLoginData = data;
+          try {
+            sessionStorage.setItem(PENDING_LOGIN_KEY, JSON.stringify(data));
+          } catch {}
         } else {
           // Single branch — log in immediately
           const branchId = data.user?.branchId || branchIds[0] || null;
@@ -138,5 +162,11 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout, loadFromStorage, clearError, selectBranch } = authSlice.actions;
+export const {
+  logout,
+  loadFromStorage,
+  clearError,
+  selectBranch,
+  cancelBranchSelect,
+} = authSlice.actions;
 export default authSlice.reducer;
