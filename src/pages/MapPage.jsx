@@ -31,6 +31,22 @@ const GRADE_BG = {
   senior: "bg-red-100 text-red-700",
 };
 
+const branchIcon = L.divIcon({
+  html: `
+    <div style="
+      width:36px;height:36px;border-radius:50%;
+      background:#1e3a8a;border:3px solid white;
+      box-shadow:0 2px 8px rgba(0,0,0,0.4);
+      display:flex;align-items:center;justify-content:center;
+      font-size:18px;
+    ">🏢</div>
+  `,
+  className: '',
+  iconSize: [36, 36],
+  iconAnchor: [18, 18],
+  popupAnchor: [0, -20],
+});
+
 function createMarkerIcon(color, photoUrl, name) {
   const initials = name
     ? name
@@ -82,20 +98,25 @@ function formatMinutesAgo(updatedAt) {
 }
 
 // Fits map bounds to all markers on first load
-function FitBounds({ locations, fitted }) {
+function FitBounds({ locations, branches, fitted }) {
   const map = useMap();
   useEffect(() => {
-    if (!fitted.current && locations.length > 0) {
-      const bounds = L.latLngBounds(locations.map((l) => [l.lat, l.lng]));
-      map.fitBounds(bounds, { padding: [48, 48], maxZoom: 15 });
+    if (fitted.current) return;
+    const points = [
+      ...locations.map((l) => [l.lat, l.lng]),
+      ...branches.map((b) => [b.location.lat, b.location.lng]),
+    ];
+    if (points.length > 0) {
+      map.fitBounds(L.latLngBounds(points), { padding: [48, 48], maxZoom: 15 });
       fitted.current = true;
     }
-  }, [locations, map, fitted]);
+  }, [locations, branches, map, fitted]);
   return null;
 }
 
 const MapPage = () => {
   const [locations, setLocations] = useState([]);
+  const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
   const fittedRef = useRef(false);
@@ -107,10 +128,6 @@ const MapPage = () => {
       const json = await res.json();
       setLocations(json.data || []);
       setLastUpdated(new Date());
-      // Reset fit if new interns appear from zero
-      if ((json.data || []).length > 0 && fittedRef.current === false) {
-        fittedRef.current = false;
-      }
     } catch {
       // Keep last known state on error
     } finally {
@@ -118,11 +135,31 @@ const MapPage = () => {
     }
   }, []);
 
+  const fetchBranches = useCallback(async () => {
+    try {
+      const res = await secureFetch(`${API_URL}/branches`);
+      if (!res.ok) return;
+      const json = await res.json();
+      const list = Array.isArray(json) ? json : json.data || [];
+      setBranches(
+        list.filter(
+          (b) =>
+            b.location &&
+            Number.isFinite(b.location.lat) &&
+            Number.isFinite(b.location.lng)
+        )
+      );
+    } catch {
+      // ignore
+    }
+  }, []);
+
   useEffect(() => {
     fetchLocations();
+    fetchBranches();
     const interval = setInterval(fetchLocations, 30000);
     return () => clearInterval(interval);
-  }, [fetchLocations]);
+  }, [fetchLocations, fetchBranches]);
 
   const handleRefresh = () => {
     fittedRef.current = false;
@@ -188,7 +225,23 @@ const MapPage = () => {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
-          <FitBounds locations={locations} fitted={fittedRef} />
+          <FitBounds locations={locations} branches={branches} fitted={fittedRef} />
+
+          {branches.map((branch) => (
+            <Marker
+              key={`branch-${branch._id}`}
+              position={[branch.location.lat, branch.location.lng]}
+              icon={branchIcon}
+            >
+              <Popup>
+                <div className="min-w-[160px]">
+                  <p className="font-semibold text-gray-900 text-sm mb-1">{branch.name}</p>
+                  {branch.city && <p className="text-xs text-gray-500">{branch.city}</p>}
+                  {branch.address && <p className="text-xs text-gray-400 mt-1">{branch.address}</p>}
+                </div>
+              </Popup>
+            </Marker>
+          ))}
 
           {locations.map((loc) => {
             const color = GRADE_COLORS[loc.grade] || "#6b7280";
