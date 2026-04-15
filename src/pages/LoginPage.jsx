@@ -94,7 +94,34 @@ const LoginPage = () => {
           <p className="text-gray-600">Вход для менторов и branch manager</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6" autoComplete="on">
+          {/*
+            Hidden composite "username" field so browser password managers can
+            store the credential as a single (fullName + password) pair. We
+            keep it visually hidden but accessible to the autofill engine,
+            and split the autofilled value back into name/lastName on change.
+          */}
+          <input
+            type="text"
+            name="username"
+            autoComplete="username"
+            tabIndex={-1}
+            aria-hidden="true"
+            value={`${name} ${lastName}`.trim()}
+            onChange={(e) => {
+              const parts = e.target.value.trim().split(/\s+/);
+              setName(parts[0] || "");
+              setLastName(parts.slice(1).join(" "));
+            }}
+            style={{
+              position: "absolute",
+              left: "-10000px",
+              width: "1px",
+              height: "1px",
+              opacity: 0,
+              pointerEvents: "none",
+            }}
+          />
           {/* Имя */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -108,6 +135,7 @@ const LoginPage = () => {
                 onChange={(e) => setName(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
                 placeholder="Введите имя"
+                autoComplete="given-name"
                 required
               />
             </div>
@@ -126,6 +154,7 @@ const LoginPage = () => {
                 onChange={(e) => setLastName(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
                 placeholder="Введите фамилию"
+                autoComplete="family-name"
                 required
               />
             </div>
@@ -144,6 +173,7 @@ const LoginPage = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
                 placeholder="Введите пароль"
+                autoComplete="current-password"
                 required
               />
             </div>
