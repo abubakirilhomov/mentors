@@ -32,8 +32,7 @@ export async function registerPush(user) {
       }),
     });
 
-    if (res.ok) console.log("✅ Подписка ментора сохранена на сервере");
-    else console.error("❌ Не удалось сохранить подписку:", await res.text());
+    if (!res.ok) console.error("❌ Не удалось сохранить подписку:", await res.text());
   } catch (err) {
     console.error("Ошибка при регистрации push:", err);
   }

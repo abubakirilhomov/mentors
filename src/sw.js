@@ -14,8 +14,6 @@ self.addEventListener("push", (event) => {
     data = { title: "🔔 Push-тест", body: event.data.text() };
   }
 
-  console.log("📩 Push получен:", data);
-
   event.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,
@@ -34,8 +32,6 @@ self.addEventListener("notificationclick", (event) => {
 });
 
 self.addEventListener("pushsubscriptionchange", async (event) => {
-  console.log("♻️ Подписка изменилась, обновляю...");
-
   const applicationServerKey = urlBase64ToUint8Array(
     import.meta.env.VITE_VAPID_PUBLIC_KEY // твой VAPID public key
   );
