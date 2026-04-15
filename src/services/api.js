@@ -3,20 +3,6 @@ import { secureFetch } from "../utils/secureFetch";
 const API_URL = import.meta.env.VITE_API_URL;
 
 export const api = {
-    // --- Auth ---
-    login: async (name, password) => {
-        const res = await fetch(`${API_URL}/mentors/login`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name, password }),
-        });
-        if (!res.ok) {
-            const err = await res.json();
-            throw new Error(err.message || "Ошибка входа");
-        }
-        return res.json();
-    },
-
     // --- Lessons / Interns ---
     getPendingInterns: async () => {
         const res = await secureFetch(`${API_URL}/lessons/pending`);
