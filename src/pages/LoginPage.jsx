@@ -204,6 +204,23 @@ const LoginPage = () => {
           </button>
         </form>
 
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-200" />
+          </div>
+          <div className="relative flex justify-center text-xs">
+            <span className="px-2 bg-white text-gray-400 uppercase tracking-wide">или</span>
+          </div>
+        </div>
+
+        <a
+          href={`${import.meta.env.VITE_API_URL}/auth/marsid/start?app=mentors`}
+          className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-all"
+        >
+          <span className="w-5 h-5 inline-flex items-center justify-center rounded-full bg-gradient-to-br from-red-500 to-orange-500 text-white text-[10px] font-bold">M</span>
+          Войти через Mars ID
+        </a>
+
         <div className="mt-8 text-center text-sm text-gray-500">
           Mars IT School © 2025
         </div>

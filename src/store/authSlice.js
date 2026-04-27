@@ -120,6 +120,29 @@ const authSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
+    setSession: (state, action) => {
+      const data = action.payload || {};
+      const branchIds = data.user?.branchIds || [];
+      if (branchIds.length > 1) {
+        state.needsBranchSelect = true;
+        state.pendingLoginData = data;
+        try {
+          sessionStorage.setItem(PENDING_LOGIN_KEY, JSON.stringify(data));
+        } catch {}
+        return;
+      }
+      const branchId = data.user?.branchId || branchIds[0] || null;
+      if (branchId) localStorage.setItem("activeBranchId", String(branchId));
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("refreshToken", data.refreshToken);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      state.isAuth = true;
+      state.user = data.user;
+      state.token = data.token;
+      state.refreshToken = data.refreshToken;
+      state.error = null;
+      try { registerPush(data.user); } catch {}
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -168,5 +191,6 @@ export const {
   clearError,
   selectBranch,
   cancelBranchSelect,
+  setSession,
 } = authSlice.actions;
 export default authSlice.reducer;

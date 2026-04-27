@@ -5,6 +5,7 @@ import { store } from './store';
 import { loadFromStorage } from './store/authSlice';
 import PrivateRoute from './components/PrivateRoute';
 import LoginPage from './pages/LoginPage';
+import MarsIdReturn from './pages/MarsIdReturn';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import LessonsPage from './pages/LessonsPage';
@@ -27,6 +28,7 @@ const AppContent = () => {
       <div className="App">
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/auth/marsid/return" element={<MarsIdReturn />} />
           <Route
             path="/dashboard"
             element={
