@@ -70,7 +70,8 @@ const MarsIdReturn = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           linkageToken: linkage.token,
-          username: `${name.trim()} ${lastName.trim()}`.trim(),
+          name: name.trim(),
+          lastName: lastName.trim(),
           password,
         }),
       });
