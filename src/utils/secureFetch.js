@@ -22,12 +22,19 @@ export const secureFetch = async (url, options = {}) => {
   });
 
   if (response.status === 401) {
+    // Migration shim: pre-cutover sessions still have refreshToken in
+    // localStorage. Pass as body fallback once; backend rotates to cookie.
+    const legacy = localStorage.getItem("refreshToken");
     const refreshRes = await fetch(`${import.meta.env.VITE_API_URL}/mentors/refresh-token`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: "{}",
+      body: JSON.stringify(legacy ? { refreshToken: legacy } : {}),
     });
+    if (legacy) {
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("token");
+    }
 
     if (refreshRes.ok) {
       const refreshData = await refreshRes.json().catch(() => ({}));

@@ -76,21 +76,34 @@ export const loginMentor = createAsyncThunk(
 // Cold-boot rehydration: fire one POST /mentors/refresh-token with the
 // httpOnly cookie. On 200 we have a fresh access token in memory; on 401
 // the user has to log in again.
+//
+// Migration shim: pre-cutover sessions still have refreshToken in
+// localStorage. Pass it as body fallback so the backend can rotate it
+// into the cookie. Cleanup legacy keys after a successful round-trip.
 export const silentRefresh = createAsyncThunk(
   "auth/silentRefresh",
   async (_, { rejectWithValue }) => {
+    const legacy = localStorage.getItem("refreshToken");
     try {
       const response = await fetch(`${apiUrl}/mentors/refresh-token`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: "{}",
+        body: JSON.stringify(legacy ? { refreshToken: legacy } : {}),
       });
+      if (legacy) {
+        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("token");
+      }
       if (!response.ok) return rejectWithValue(response.status);
       const data = await response.json().catch(() => ({}));
       if (!data?.token) return rejectWithValue(204);
       return data.token;
     } catch {
+      if (legacy) {
+        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("token");
+      }
       return rejectWithValue("network");
     }
   }
