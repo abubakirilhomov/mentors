@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { logout } from "../store/authSlice";
+import { logoutMentor } from "../store/authSlice";
 import { secureFetch } from "../utils/secureFetch";
 import { ArrowLeft, LogOut, Lock, Eye, EyeOff, ChevronRight, ShieldCheck, UserCircle } from "lucide-react";
 
@@ -79,8 +79,8 @@ const Profile = () => {
     setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
   };
 
-  const handleLogout = () => {
-    dispatch(logout());
+  const handleLogout = async () => {
+    await dispatch(logoutMentor());
     navigate("/login");
   };
 

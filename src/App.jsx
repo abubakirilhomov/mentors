@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Provider, useDispatch, useSelector } from 'react-redux';
 import { store } from './store';
-import { loadFromStorage } from './store/authSlice';
+import { silentRefresh } from './store/authSlice';
 import PrivateRoute from './components/PrivateRoute';
 import LoginPage from './pages/LoginPage';
 import MarsIdReturn from './pages/MarsIdReturn';
@@ -19,8 +19,9 @@ const AppContent = () => {
   const { isAuth } = useSelector((state) => state.auth);
 
   useEffect(() => {
-    // Загружаем данные из localStorage при инициализации
-    dispatch(loadFromStorage());
+    // Cold-boot: refresh cookie auto-sent. On 200 we hydrate the access
+    // token; on 401 the user lands on /login.
+    dispatch(silentRefresh());
   }, [dispatch]);
 
   return (

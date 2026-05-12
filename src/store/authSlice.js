@@ -14,13 +14,26 @@ const readPendingLogin = () => {
 
 const initialPending = readPendingLogin();
 
+// Snappy boot UX: rehydrate non-credential user from localStorage so the UI
+// can render while silentRefresh runs in the background. authInitialized
+// only flips after refresh resolves (or fails), so PrivateRoute won't trust
+// stale user until then.
+const readCachedUser = () => {
+  try {
+    const raw = localStorage.getItem("user");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
 const initialState = {
   isAuth: false,
+  authInitialized: false,
   needsBranchSelect: Boolean(initialPending),
   pendingLoginData: initialPending,
-  user: null,
+  user: readCachedUser(),
   token: null,
-  refreshToken: null,
   loading: false,
   error: null,
 };
@@ -39,6 +52,7 @@ export const loginMentor = createAsyncThunk(
 
       const response = await fetch(`${apiUrl}/mentors/login`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: trimmedName,
@@ -59,36 +73,83 @@ export const loginMentor = createAsyncThunk(
   }
 );
 
+// Cold-boot rehydration: fire one POST /mentors/refresh-token with the
+// httpOnly cookie. On 200 we have a fresh access token in memory; on 401
+// the user has to log in again.
+export const silentRefresh = createAsyncThunk(
+  "auth/silentRefresh",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await fetch(`${apiUrl}/mentors/refresh-token`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+      if (!response.ok) return rejectWithValue(response.status);
+      const data = await response.json().catch(() => ({}));
+      if (!data?.token) return rejectWithValue(204);
+      return data.token;
+    } catch {
+      return rejectWithValue("network");
+    }
+  }
+);
+
+export const logoutMentor = createAsyncThunk(
+  "auth/logoutMentor",
+  async (_, { getState }) => {
+    const { auth } = getState();
+    try {
+      await fetch(`${apiUrl}/mentors/logout`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          ...(auth.token ? { Authorization: `Bearer ${auth.token}` } : {}),
+        },
+        body: "{}",
+      });
+    } catch {
+      // Network may be down; the server blacklist won't get the jti, but the
+      // user is leaving anyway. Always proceed to clear state.
+    }
+  }
+);
+
+const clearLocalSession = (state) => {
+  state.isAuth = false;
+  state.needsBranchSelect = false;
+  state.pendingLoginData = null;
+  state.user = null;
+  state.token = null;
+  state.error = null;
+  localStorage.removeItem("user");
+  localStorage.removeItem("activeBranchId");
+  sessionStorage.removeItem(PENDING_LOGIN_KEY);
+};
+
 const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    logout: (state) => {
-      state.isAuth = false;
-      state.needsBranchSelect = false;
-      state.pendingLoginData = null;
-      state.user = null;
-      state.token = null;
-      state.error = null;
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("activeBranchId");
-      sessionStorage.removeItem(PENDING_LOGIN_KEY);
+    // Forced local logout for the unauthorized-refresh path. Does NOT call
+    // /logout — used when the server has already rejected us.
+    forceLogout: (state) => {
+      clearLocalSession(state);
+      state.authInitialized = true;
     },
     selectBranch: (state, action) => {
       const branchId = action.payload;
       localStorage.setItem("activeBranchId", branchId);
       const data = state.pendingLoginData;
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("refreshToken", data.refreshToken);
       localStorage.setItem("user", JSON.stringify({ ...data.user, activeBranchId: branchId }));
       sessionStorage.removeItem(PENDING_LOGIN_KEY);
       state.isAuth = true;
+      state.authInitialized = true;
       state.needsBranchSelect = false;
       state.user = { ...data.user, activeBranchId: branchId };
       state.token = data.token;
-      state.refreshToken = data.refreshToken;
       state.pendingLoginData = null;
     },
     cancelBranchSelect: (state) => {
@@ -98,24 +159,6 @@ const authSlice = createSlice({
     },
     updateToken: (state, action) => {
       state.token = action.payload;
-    },
-    loadFromStorage: (state) => {
-      const token = localStorage.getItem("token");
-      const refreshToken = localStorage.getItem("refreshToken");
-      const userStr = localStorage.getItem("user");
-
-      if (token && refreshToken && userStr) {
-        try {
-          const user = JSON.parse(userStr);
-          state.isAuth = true;
-          state.user = user;
-          state.token = token;
-          state.refreshToken = refreshToken;
-        } catch (error) {
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
-        }
-      }
     },
     clearError: (state) => {
       state.error = null;
@@ -133,13 +176,11 @@ const authSlice = createSlice({
       }
       const branchId = data.user?.branchId || branchIds[0] || null;
       if (branchId) localStorage.setItem("activeBranchId", String(branchId));
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("refreshToken", data.refreshToken);
       localStorage.setItem("user", JSON.stringify(data.user));
       state.isAuth = true;
+      state.authInitialized = true;
       state.user = data.user;
       state.token = data.token;
-      state.refreshToken = data.refreshToken;
       state.error = null;
       try { registerPush(data.user); } catch {}
     },
@@ -157,40 +198,63 @@ const authSlice = createSlice({
         const branchIds = data.user?.branchIds || [];
 
         if (branchIds.length > 1) {
-          // Multi-branch: pause and ask user to choose.
-          // Persist to sessionStorage so reload on the branch-picker keeps the flow.
+          // Multi-branch: pause and ask user to choose. Refresh cookie is
+          // already set by the server; we just need to remember which branch
+          // they pick.
           state.needsBranchSelect = true;
           state.pendingLoginData = data;
           try {
             sessionStorage.setItem(PENDING_LOGIN_KEY, JSON.stringify(data));
           } catch {}
         } else {
-          // Single branch — log in immediately
           const branchId = data.user?.branchId || branchIds[0] || null;
           if (branchId) localStorage.setItem("activeBranchId", String(branchId));
-          localStorage.setItem("token", data.token);
-          localStorage.setItem("refreshToken", data.refreshToken);
           localStorage.setItem("user", JSON.stringify(data.user));
           state.isAuth = true;
+          state.authInitialized = true;
           state.user = data.user;
           state.token = data.token;
-          state.refreshToken = data.refreshToken;
           registerPush(data.user);
         }
       })
       .addCase(loginMentor.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      .addCase(silentRefresh.fulfilled, (state, action) => {
+        state.token = action.payload;
+        state.isAuth = Boolean(state.user);
+        state.authInitialized = true;
+      })
+      .addCase(silentRefresh.rejected, (state) => {
+        // Cookie missing / expired / revoked: stay logged out and clear any
+        // stale cached user so the login screen isn't lying to us.
+        clearLocalSession(state);
+        state.authInitialized = true;
+      })
+      .addCase(logoutMentor.fulfilled, (state) => {
+        clearLocalSession(state);
+        state.authInitialized = true;
+      })
+      .addCase(logoutMentor.rejected, (state) => {
+        clearLocalSession(state);
+        state.authInitialized = true;
       });
   },
 });
 
 export const {
-  logout,
-  loadFromStorage,
+  forceLogout,
   clearError,
   selectBranch,
   cancelBranchSelect,
   setSession,
+  updateToken,
 } = authSlice.actions;
+
+// Legacy alias — some files (secureFetch) dispatch the bare "auth/logout"
+// action type string. Map it to forceLogout so the existing call sites keep
+// working without per-file rewrites.
+export const logout = forceLogout;
+
 export default authSlice.reducer;

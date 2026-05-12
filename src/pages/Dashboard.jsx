@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { logout } from "../store/authSlice";
+import { logoutMentor } from "../store/authSlice";
 import { api } from "../services/api";
 
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -167,7 +167,7 @@ const Dashboard = () => {
   };
 
   const handleLogout = () => {
-    dispatch(logout());
+    dispatch(logoutMentor());
   };
 
   return (

@@ -39,9 +39,10 @@ const MarsIdReturn = () => {
     if (fragment.token && fragment.user) {
       try {
         const user = JSON.parse(fragment.user);
+        // Refresh cookie was set on the redirect response from the API
+        // origin; we only need the access token and user payload here.
         dispatch(setSession({
           token: fragment.token,
-          refreshToken: fragment.refreshToken,
           user,
         }));
       } catch {
