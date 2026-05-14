@@ -98,7 +98,7 @@ export const silentRefresh = createAsyncThunk(
       if (!response.ok) return rejectWithValue(response.status);
       const data = await response.json().catch(() => ({}));
       if (!data?.token) return rejectWithValue(204);
-      return data.token;
+      return { token: data.token, user: data.user || null };
     } catch {
       if (legacy) {
         localStorage.removeItem("refreshToken");
@@ -170,6 +170,20 @@ const authSlice = createSlice({
       state.needsBranchSelect = false;
       state.pendingLoginData = null;
     },
+    // Runtime branch switch (post-login). Caller is expected to reload the
+    // page after dispatch so all components refetch with the new
+    // X-Active-Branch header. Silently rejected if the id is not in the
+    // user's allowed list — server's resolveActiveBranch.js would 403 anyway.
+    switchActiveBranch: (state, action) => {
+      const branchId = String(action.payload);
+      const allowed = (state.user?.branchIds || []).map(String);
+      if (!allowed.includes(branchId)) return;
+      localStorage.setItem("activeBranchId", branchId);
+      state.user = { ...state.user, activeBranchId: branchId };
+      try {
+        localStorage.setItem("user", JSON.stringify(state.user));
+      } catch {}
+    },
     updateToken: (state, action) => {
       state.token = action.payload;
     },
@@ -235,7 +249,16 @@ const authSlice = createSlice({
         state.error = action.payload;
       })
       .addCase(silentRefresh.fulfilled, (state, action) => {
-        state.token = action.payload;
+        const payload = action.payload || {};
+        state.token = payload.token || null;
+        if (payload.user) {
+          // Refresh the cached user blob so existing sessions pick up new
+          // fields (e.g. populated `branches` for the runtime switcher).
+          state.user = { ...(state.user || {}), ...payload.user };
+          try {
+            localStorage.setItem("user", JSON.stringify(state.user));
+          } catch {}
+        }
         state.isAuth = Boolean(state.user);
         state.authInitialized = true;
       })
@@ -261,6 +284,7 @@ export const {
   clearError,
   selectBranch,
   cancelBranchSelect,
+  switchActiveBranch,
   setSession,
   updateToken,
 } = authSlice.actions;

@@ -10,6 +10,7 @@ import StatsCard from "../components/StatsCard";
 import PushManager from "../components/PushManager";
 import InstallPrompt from "../components/InstallPrompt";
 import BranchManagerDashboard from "../components/BranchManagerDashboard";
+import BranchSwitcher from "../components/BranchSwitcher";
 
 import "swiper/css";
 import "swiper/css/navigation";
@@ -191,6 +192,8 @@ const Dashboard = () => {
             </div>
 
             <div className="flex items-center gap-4">
+              <BranchSwitcher />
+
               <button
                 onClick={loadData}
                 disabled={loading}
