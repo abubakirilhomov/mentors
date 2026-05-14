@@ -238,6 +238,14 @@ const MapPage = () => {
                   <p className="font-semibold text-gray-900 text-sm mb-1">{branch.name}</p>
                   {branch.city && <p className="text-xs text-gray-500">{branch.city}</p>}
                   {branch.address && <p className="text-xs text-gray-400 mt-1">{branch.address}</p>}
+                  <a
+                    href={`https://yandex.com/maps/?ll=${branch.location.lng},${branch.location.lat}&z=17&pt=${branch.location.lng},${branch.location.lat}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 mt-2 text-xs font-medium text-red-600 hover:text-red-700 hover:underline"
+                  >
+                    Открыть в Яндексе →
+                  </a>
                 </div>
               </Popup>
             </Marker>
